@@ -1,232 +1,187 @@
-# Contributing to OpenClaw
+> 🌐 本文档由 [openclaw/openclaw](https://github.com/openclaw/openclaw) 翻译,英文原版见原项目。
 
-Welcome to the lobster tank! 🦞
+# 参与贡献 OpenClaw
 
-## Quick Links
+欢迎来到龙虾池!🦞
+
+## 快速链接
 
 - **GitHub:** https://github.com/openclaw/openclaw
-- **Vision:** [`VISION.md`](VISION.md)
+- **愿景:** [`VISION.md`](VISION.md)
 - **Discord:** https://discord.gg/clawd
 - **X/Twitter:** [@openclaw](https://x.com/openclaw)
 
-## Maintainers
+## 维护者
 
-The current OpenClaw Foundation team and Core Maintainers are listed on the
-OpenClaw people page: https://www.openclaw.org/people
+当前的 OpenClaw 基金会团队与核心维护者名单见 OpenClaw 人员页面:https://www.openclaw.org/people
 
-## How to Contribute
+## 如何参与贡献
 
-1. **Bugs & small fixes** → Open a PR!
-2. **New features / architecture** → Start a [GitHub Issue](https://github.com/openclaw/openclaw/issues/new/choose) or ask in Discord first. Most features are not accepted and should be third party plugins instead using our plugin SDK.
-3. **Refactor-only PRs** → Don't open a PR. We are not accepting refactor-only changes unless a maintainer explicitly asks for them as part of a concrete fix.
-4. **Test/CI-only PRs for known `main` failures** → Don't open a PR. The Maintainer team is already tracking those failures, and PRs that only tweak tests or CI to chase them will be closed unless they are required to validate a new fix.
-5. **Questions** → Discord [#help](https://discord.com/channels/1456350064065904867/1459642797895319552) / [#users-helping-users](https://discord.com/channels/1456350064065904867/1459007081603403828)
+1. **Bug 与小修复** → 直接提 PR!
+2. **新功能 / 架构改动** → 先开 [GitHub Issue](https://github.com/openclaw/openclaw/issues/new/choose) 或在 Discord 里问一声。大多数功能不会被接受,应当改用我们的 plugin SDK 做成第三方插件。
+3. **纯重构 PR** → 不要提。除非维护者在某个具体修复中明确要求,否则不接受纯重构改动。
+4. **针对 `main` 已知失败的 Test/CI-only PR** → 不要提。维护者团队已经在跟踪这些失败,只为追赶这些失败而调整测试或 CI 的 PR 会被关闭,除非这是验证新修复所必需的。
+5. **提问** → Discord [#help](https://discord.com/channels/1456350064065904867/1459642797895319552) / [#users-helping-users](https://discord.com/channels/1456350064065904867/1459007081603403828)
 
-## Issue, PR, and Contact Routing
+## Issue、PR 与联系渠道分流
 
-Start from this routing map before creating GitHub items:
+在创建 GitHub 条目之前,先参照这张分流表:
 
-| Situation                                                | Use                                                                                                                                                                                  | Required evidence                                                                                                   |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Product bug, regression, crash, or behavior defect       | [Bug report](https://github.com/openclaw/openclaw/issues/new?template=bug_report.yml)                                                                                                | Repro steps, expected vs actual behavior, version, OS, model/provider route when relevant, logs/screenshots, impact |
-| Documentation bug or missing/contradictory docs          | [Docs bug report](https://github.com/openclaw/openclaw/issues/new?template=docs_bug_report.yml)                                                                                      | Affected docs path or URL, verification steps, expected docs content, actual docs content, impact, evidence         |
-| New feature, architecture change, or product improvement | [Feature request](https://github.com/openclaw/openclaw/issues/new?template=feature_request.yml) or Discord first                                                                     | Problem, proposed solution, alternatives, impact, examples or prior art                                             |
-| Onboarding, setup help, or general support question      | Discord [#help](https://discord.com/channels/1456350064065904867/1459642797895319552) / [#users-helping-users](https://discord.com/channels/1456350064065904867/1459007081603403828) | Do not open a GitHub issue unless there is a concrete product defect or docs gap                                    |
-| Security vulnerability                                   | See [Report a Vulnerability](#report-a-vulnerability) below                                                                                                                          | Do not file public issues for private security reports                                                              |
-| PR for an existing or newly filed issue                  | Use the [PR template](.github/pull_request_template.md)                                                                                                                              | Visible `Closes #<issue>` or `Related: #<issue>`, problem, shipped solution, user impact, validation evidence       |
+| 情况 | 渠道 | 需要提供的证据 |
+| --- | --- | --- |
+| 产品 bug、回归、崩溃或行为缺陷 | [Bug 报告](https://github.com/openclaw/openclaw/issues/new?template=bug_report.yml) | 复现步骤、预期行为与实际行为、版本、操作系统、相关时的 model/provider、日志/截图、影响 |
+| 文档 bug 或文档缺失/自相矛盾 | [文档 bug 报告](https://github.com/openclaw/openclaw/issues/new?template=docs_bug_report.yml) | 受影响的文档路径或 URL、验证步骤、预期的文档内容、实际的文档内容、影响、证据 |
+| 新功能、架构变更或产品改进 | 提交 [Feature request](https://github.com/openclaw/openclaw/issues/new?template=feature_request.yml) 或先在 Discord 讨论 | 问题描述、建议方案、备选方案、影响、示例或已有先例 |
+| 上手引导、安装帮助或一般支持问题 | Discord [#help](https://discord.com/channels/1456350064065904867/1459642797895319552) / [#users-helping-users](https://discord.com/channels/1456350064065904867/1459007081603403828) | 除非存在具体的产品缺陷或文档缺口,否则不要开 GitHub issue |
+| 安全漏洞 | 见下文[报告漏洞](#report-a-vulnerability) | 安全报告请勿提公开 issue |
+| 针对已有或新开 issue 的 PR | 使用 [PR 模板](.github/pull_request_template.md) | 清晰可见的 `Closes #<issue>` 或 `Related: #<issue>`、问题描述、交付的解决方案、用户影响、验证证据 |
 
-For agent-authored or otherwise non-trivial work, create or reuse the issue first, then open the PR against it. Bugs and very small fixes may go straight to PR, but still link existing context when it exists and fill out the PR template.
+对于由 agent 撰写或其他非琐碎的改动,先创建或复用对应 issue,再针对它提 PR。Bug 和非常小的修复可以直接提 PR,但在存在相关上下文时仍要链接它,并填写 PR 模板。
 
-Do not guess who to tag. Let issue forms, labels/automation, and `.github/CODEOWNERS` route the work. Mention a maintainer only when an owned path or documented responsibility is directly relevant and you need a decision; otherwise rely on normal review. For coordinated change sets, ask in **#clawtributors** before opening more than the PR limit.
+不要猜该 @ 谁。让 issue 表单、标签/自动化机制和 `.github/CODEOWNERS` 来分流工作。只有当某个被管辖的路径或明确记录的职责直接相关、且你需要一个决策时才 mention 维护者;否则走正常 review 流程。对于成套的协同改动,在开出超过 PR 数量上限之前,先去 **#clawtributors** 问一声。
 
-## PR Limits
+## PR 数量上限
 
-We cap at **20 open PRs per author**. If you exceed this, the `r: too-many-prs` label is added and your PR is auto-closed. This is a hard limit.
+我们的上限是**每位作者 20 个开放 PR**。超出后会被打上 `r: too-many-prs` 标签,PR 会被自动关闭。这是硬性上限。
 
-For coordinated change sets that genuinely need more than 20 PRs, join the **#clawtributors** channel in Discord and talk to maintainers first.
+如果成套协同改动确实需要超过 20 个 PR,请先加入 Discord 的 **#clawtributors** 频道,与维护者沟通。
 
-## Source dependencies
+## 源码依赖
 
-Run `pnpm install --frozen-lockfile` from the workspace root. Source checkouts use
-pnpm's isolated linker, which keeps dependencies in `node_modules/.pnpm` and links
-them into each workspace package. On supported macOS volumes, this also lets pnpm
-reuse whole-package APFS clones instead of importing every file separately.
+在工作区根目录运行 `pnpm install --frozen-lockfile`。源码检出使用 pnpm 的 isolated linker,依赖保存在 `node_modules/.pnpm` 中,再链接进每个 workspace 包。在受支持的 macOS 卷上,这还能让 pnpm 复用整包的 APFS clone,而不是逐个导入文件。
 
-Give each source checkout its own physical dependency installation. Tooling does
-not automatically link a missing `node_modules` to another checkout. Existing
-borrowed installs can still serve direct Node tooling. Normal pnpm install checks
-the checkout-root `node_modules`, the explicitly configured root module directory,
-and their `.pnpm` directories before reconciliation, refusing borrowed links there.
-Preserve that donor and create an independently owned install instead of removing
-or reinstalling through its link. Explicit hydrated module directories remain
-supported when the workspace link points to the configured physical directory.
-This admission check runs through `pnpm:devPreinstall`; `--ignore-scripts` skips
-it. The check does not lock paths against concurrent replacement, inspect every
-workspace package's dependencies, or validate every alternate pnpm directory setting.
+给每个源码检出各自独立的依赖安装。工具不会自动把缺失的 `node_modules` 链接到另一个检出。已有的"借来"安装仍可直接供 Node 工具使用。正常的 pnpm install 会在调和之前检查检出根目录的 `node_modules`、显式配置的根模块目录以及它们的 `.pnpm` 目录,并拒绝那里的借用链接。请保留那个供体安装,另建一个独立拥有的安装,而不是删除它或通过其链接重装。当 workspace 链接指向配置的物理目录时,显式水合(hydrated)的模块目录仍然受支持。该准入检查通过 `pnpm:devPreinstall` 运行;`--ignore-scripts` 会跳过它。这项检查不会锁定路径以防并发替换,不会检查每个 workspace 包的依赖,也不会校验所有备选的 pnpm 目录设置。
 
-When updating a checkout that used the hoisted layout, stop builds, tests, and
-watchers using that checkout's dependencies before running the install command.
-Do not change the linker while other jobs are using the same `node_modules`.
-Declare dependencies in the package that imports them; root tooling and tests
-must declare their own development dependencies rather than rely on hoisting.
+更新原先使用 hoisted 布局的检出时,先停掉所有使用该检出依赖的构建、测试和 watcher,再运行安装命令。在其他任务还在使用同一个 `node_modules` 时,不要更换 linker。在真正导入依赖的包里声明依赖;根目录的工具和测试必须声明自己的开发依赖,而不是依赖 hoisting。
 
-## Before You PR
+## 提 PR 之前
 
-- Use **Node 24.16+ LTS** or **Node 26.1+** for source checkouts. Older Node releases can truncate SQLite TEXT reads; Node 22, 23, and 25 are unsupported. See [Node install guidance](docs/install/node.md) if your local version is too old.
-- Run the Vitest 5 suite on Node 24.16+ or Node 26.1+, matching the packaged runtime floor.
-- Test locally with your OpenClaw instance
-- Before implementing a material SQLite or persistent-store change, open or link a maintainer discussion and get the design accepted. See the [database schema review checkpoint](docs/reference/database-schemas.md#review-checkpoint-for-material-changes).
-- External PRs must describe the user, product, or operational problem in **What Problem This Solves** and include useful validation in **Evidence**. Focused tests, CI results, screenshots, recordings, terminal output, live observations, redacted logs, and artifact links all count. Reviewers will inspect the code, tests, and CI; use the PR body to explain intent and make validation easy to understand.
-- When ClawSweeper, Barnacle, or a maintainer asks for more context or evidence, edit the PR description instead of only replying in a new comment. Keep **What Problem This Solves**, **Why This Change Was Made**, **User Impact**, and **Evidence** current; a short comment can point reviewers to the update, but the PR body should remain the durable explanation for maintainers and bots.
-- Keep PRs takeover-ready: open them from a branch maintainers can push to. For fork PRs, leave GitHub's **Allow edits by maintainers** option enabled so maintainers can finish urgent fixes or merge prep when needed. If GitHub shows **Allow edits and access to secrets by maintainers**, enable it only when that workflow/secrets access is acceptable and say so in the PR.
-- Do not edit `CHANGELOG.md` in normal PRs or at merge. Changelogs are generated at release time from merged PRs and commits; keep release-note context in PR bodies or commit messages until then.
-- Run tests: `pnpm build && pnpm check && pnpm test`
-- For iterative local commits after running equivalent targeted validation for the touched surface, `git commit --no-verify` skips commit hooks.
-- For extension/plugin changes, run the fast local lane first:
+- 源码检出请使用 **Node 24.16+ LTS** 或 **Node 26.1+**。更旧的 Node 版本可能截断 SQLite TEXT 读取;Node 22、23、25 均不受支持。如果本地版本太旧,参见 [Node 安装指引](docs/install/node.md)。
+- 在 Node 24.16+ 或 Node 26.1+ 上运行 Vitest 5 测试套件,与打包时的运行时下限保持一致。
+- 用你自己的 OpenClaw 实例做本地测试
+- 在实施重大的 SQLite 或持久化存储改动之前,先发起或关联一个维护者讨论,并让设计获得认可。参见[数据库 schema 评审检查点](docs/reference/database-schemas.md#review-checkpoint-for-material-changes)。
+- 外部 PR 必须在 **What Problem This Solves** 中描述用户、产品或运维层面的问题,并在 **Evidence** 中给出有效的验证。聚焦的测试、CI 结果、截图、录屏、终端输出、实际观察、脱敏日志和工件链接都算数。Reviewer 会审查代码、测试和 CI;请利用 PR 正文说明意图,让验证内容易于理解。
+- 当 ClawSweeper、Barnacle 或维护者要求补充上下文或证据时,请编辑 PR 描述,而不是只在新评论里回复。保持 **What Problem This Solves**、**Why This Change Was Made**、**User Impact** 和 **Evidence** 始终为最新;可以用一条简短评论提醒 reviewer 查看更新,但 PR 正文应当始终是面向维护者和 bot 的持久说明。
+- 保持 PR 可随时接管:从维护者可以推送的分支发起 PR。对于 fork PR,请保留 GitHub 的 **Allow edits by maintainers** 选项为启用状态,以便维护者在需要时完成紧急修复或合并准备。如果 GitHub 显示 **Allow edits and access to secrets by maintainers**,仅在你接受该 workflow/secrets 访问时才启用,并在 PR 中说明。
+- 不要在普通 PR 中或合并时修改 `CHANGELOG.md`。更新日志在发布时由已合并的 PR 和提交生成;在此之前,请把 release note 相关内容写在 PR 正文或提交信息里。
+- 运行测试:`pnpm build && pnpm check && pnpm test`
+- 在对所改动面跑过等效的针对性验证之后,迭代期间的本地提交可以用 `git commit --no-verify` 跳过 commit hooks。
+- 对于扩展/插件改动,先跑快速本地通道:
   - `pnpm test:extension <extension-name>`
-  - `pnpm test:extension --list` to see valid extension ids
-  - If you changed shared plugin or channel surfaces, run `pnpm test:contracts`
-  - For targeted shared-surface work, use `pnpm test:contracts:channels` or `pnpm test:contracts:plugins`
-  - These commands also cover the shared seam/smoke files that the default unit lane skips
-  - If you changed broader runtime behavior, still run the relevant wider lanes (`pnpm test:extensions`, `pnpm test:channels`, or `pnpm test`) before asking for review
-- If you touched bundled-plugin boundaries in shared code, run the matching inventories:
-  - `node --import tsx scripts/check-src-extension-import-boundary.mts --json` for `src/**`
-  - `node --import tsx scripts/check-sdk-package-extension-import-boundary.mts --json` for `src/plugin-sdk/**` and `packages/**`
-  - `node --import tsx scripts/check-test-helper-extension-import-boundary.mts --json` for `test/helpers/**`
-- Shared test helpers must use `src/test-utils/bundled-plugin-public-surface.ts` instead of repo-relative `extensions/**` imports. Keep plugin-local deep mocks inside the owning bundled plugin package.
-- If you are using an AI coding agent with OpenClaw skills available, run the `autoreview` skill before opening or updating your PR. Address accepted/actionable findings before asking for review.
-- Do not submit refactor-only PRs unless a maintainer explicitly requested that refactor for an active fix or deliverable.
-- Do not submit test or CI-config fixes for failures already red on `main` CI. If a failure is already visible in the [main branch CI runs](https://github.com/openclaw/openclaw/actions), it's a known issue the Maintainer team is tracking, and a PR that only addresses those failures will be closed automatically. If you spot a _new_ regression not yet shown in main CI, report it as an issue first.
-- Do not submit test-only PRs that just try to make known `main` CI failures pass. Test changes are acceptable when they are required to validate a new fix or cover new behavior in the same PR.
-- Ensure CI checks pass
-- Keep PRs focused (one thing per PR; do not mix unrelated concerns)
-- Describe what & why
-- **Include screenshots** — one showing the problem/before, one showing the fix/after (for UI or visual changes)
-- Use American English spelling and grammar in code, comments, docs, and UI strings
-- Do not edit files covered by `CODEOWNERS` security ownership unless a listed owner authored or explicitly requested the change, or is already reviewing it with you. For governance changes to ownership/review policy itself, explicit direction from an organization owner is also sufficient only when live GitHub organization membership shows `state: active` and `role: admin`; repository `ADMIN`, `viewerCanAdminister`, or bypass permission alone never qualifies. Neither route waives a GitHub-enforced approval rule. Treat those paths as restricted review surfaces, not opportunistic cleanup targets.
+  - `pnpm test:extension --list` 查看有效的扩展 id
+  - 如果改动了共享的插件或 channel 面,运行 `pnpm test:contracts`
+  - 针对性的共享面改动,使用 `pnpm test:contracts:channels` 或 `pnpm test:contracts:plugins`
+  - 这些命令也会覆盖默认单元测试通道跳过的共享 seam/smoke 文件
+  - 如果改动了更大范围的运行时行为,在请求 review 之前仍要运行相关的更大范围通道(`pnpm test:extensions`、`pnpm test:channels` 或 `pnpm test`)
+- 如果你在共享代码中触及了 bundled plugin 的边界,运行对应的清单检查:
+  - `node --import tsx scripts/check-src-extension-import-boundary.mts --json`(针对 `src/**`)
+  - `node --import tsx scripts/check-sdk-package-extension-import-boundary.mts --json`(针对 `src/plugin-sdk/**` 和 `packages/**`)
+  - `node --import tsx scripts/check-test-helper-extension-import-boundary.mts --json`(针对 `test/helpers/**`)
+- 共享测试辅助必须使用 `src/test-utils/bundled-plugin-public-surface.ts`,而不是仓库相对的 `extensions/**` 导入。插件局部的深度 mock 要放在所属的 bundled plugin 包内部。
+- 如果你正在使用带 OpenClaw skills 的 AI 编码 agent,在开 PR 或更新 PR 之前先运行 `autoreview` skill。在请求 review 之前,先处理被采纳/可执行的发现。
+- 不要提交纯重构 PR,除非维护者为某个进行中的修复或交付物明确要求了该重构。
+- 不要为 `main` CI 上已经变红的失败提交测试或 CI 配置修复。如果某个失败已经出现在 [main 分支 CI 运行](https://github.com/openclaw/openclaw/actions)中,那就是维护者团队正在跟踪的已知问题,只处理这些失败的 PR 会被自动关闭。如果你发现了尚未出现在 main CI 中的_新_回归,请先提 issue 报告。
+- 不要提交只为让 `main` CI 已知失败通过的 test-only PR。只有当测试改动是验证新修复所必需、或在同一个 PR 中覆盖新行为时,才是可接受的。
+- 确保 CI 检查通过
+- 保持 PR 聚焦(一个 PR 只做一件事;不要混杂无关内容)
+- 说明做了什么以及为什么
+- **附上截图** —— 一张展示问题/改前,一张展示修复/改后(针对 UI 或视觉改动)
+- 代码、注释、文档和 UI 字符串使用美式英语拼写和语法
+- 不要修改受 `CODEOWNERS` 安全管辖的文件,除非列出的 owner 本人编写或明确要求了该改动,或已经在与你共同评审它。对于针对 ownership/review 策略本身的治理性变更,仅当 GitHub 组织的实时成员数据显示 `state: active` 且 `role: admin` 时,组织 owner 的明确指示才同样有效;仅有仓库 `ADMIN`、`viewerCanAdminister` 或 bypass 权限永远不够。这两种途径都不能豁免 GitHub 强制的审批规则。把这些路径当作受限的评审面,而不是顺手清理的目标。
 
-## Local commit hook
+## 本地提交钩子
 
-The normal `pnpm install` setup enables the repository's pre-commit formatting hook
-when `core.hooksPath` is unset. Existing hook selections, including an explicitly
-empty value, are preserved. Git scopes initialization to the current checkout.
-With multiple worktrees, automatic setup requires `extensions.worktreeConfig`;
-otherwise Git reports a warning and installation continues without changing hook
-settings. The repository owner can enable per-worktree configuration following
-[Git's configuration guidance](https://git-scm.com/docs/git-worktree#_configuration_file).
+正常的 `pnpm install` 安装流程会在 `core.hooksPath` 未设置时启用仓库的 pre-commit 格式化钩子。已有的钩子配置(包括显式设为空值)会被保留。Git 把初始化范围限定在当前检出。使用多个 worktree 时,自动设置要求启用 `extensions.worktreeConfig`;否则 Git 会报出警告,并在不更改钩子设置的情况下继续安装。仓库所有者可以按照 [Git 的配置指引](https://git-scm.com/docs/git-worktree#_configuration_file)启用 per-worktree 配置。
 
-The hook's optional content guard reads a private UTF-8 file selected by
-the native Git setting `hooks.blockedLiteralsFile`. Keep one literal per nonempty
-line in a file outside the checkout, such as
-`~/.config/openclaw/blocked-literals.txt`, then configure this checkout:
+钩子的可选内容守卫会读取一个私有 UTF-8 文件,该文件由原生 Git 设置 `hooks.blockedLiteralsFile` 指定。在检出之外的文件中每行写一个字面量,例如 `~/.config/openclaw/blocked-literals.txt`,然后为该检出配置:
 
 ```bash
 git config --local hooks.blockedLiteralsFile "$HOME/.config/openclaw/blocked-literals.txt"
 ```
 
-Git metadata is another safe untracked location for the private file. Never put
-private rule contents in tracked files or PRs. With no setting, the content guard
-is disabled and formatting runs normally; a configured empty path or missing,
-unreadable, empty, or invalid file blocks the commit.
+Git 元数据目录是存放这个私有文件的另一个安全的未跟踪位置。绝不要把私有规则内容放进被跟踪的文件或 PR。未设置时,内容守卫处于禁用状态,格式化正常运行;配置了空路径,或文件缺失、不可读、为空或无效时,提交会被阻止。
 
-When configured, the guard checks case-sensitive literal substrings before
-formatting and again after formatting restages files. Each scan checks the full
-staged contents of added, modified, and type-changed files, including rename
-destinations and unchanged lines within modified files. Docs, tests, generated
-files, and binary files are included; no tracked file is exempt.
+配置之后,守卫会在格式化之前检查区分大小写的字面量子串,并在格式化后重新暂存文件时再检查一次。每次扫描覆盖新增、修改和类型变更文件的完整暂存内容,包括重命名的目标路径以及被修改文件中未更改的行。文档、测试、生成文件和二进制文件都包含在内;没有任何被跟踪文件可以豁免。
 
-If the hook blocks a commit, remove the matching content and restage the reported
-files. Unchanged historical files and deletions are not scanned. Submodule contents
-and symlink targets are not searched. This is a local safeguard, not CI or server
-enforcement: bypassing or disabling hooks also bypasses this check.
+如果钩子阻止了提交,请移除匹配的内容并重新暂存被报告的文件。未更改的历史文件和删除操作不会被扫描。子模块内容和符号链接目标不会被搜索。这是本地防护,不是 CI 或服务端强制:绕过或禁用钩子同样会绕过这项检查。
 
-## Review Conversations Are Author-Owned
+## Review 对话由作者主导
 
-After your PR receives Barnacle, ClawSweeper, or maintainer feedback, read the [pull request review flow](https://docs.openclaw.ai/reference/pull-request-review-flow) for how to interpret rank-up moves, proof guidance, re-review requests, and review conversation follow-up.
+在 PR 收到 Barnacle、ClawSweeper 或维护者的反馈后,请阅读 [pull request review flow](https://docs.openclaw.ai/reference/pull-request-review-flow),了解如何理解 rank-up 操作、证据指引、复审请求以及评审对话的后续跟进。
 
-## Control UI Decorators
+## Control UI 装饰器
 
-The Control UI uses Lit with **legacy** decorators (current Rollup parsing does not support
-`accessor` fields required for standard decorators). When adding reactive fields, keep the
-legacy style:
+Control UI 使用 Lit 的**旧版(legacy)**装饰器(当前的 Rollup 解析不支持标准装饰器所需的 `accessor` 字段)。添加响应式字段时,请保持旧版风格:
 
 ```ts
 @state() foo = "bar";
 @property({ type: Number }) count = 0;
 ```
 
-The root `tsconfig.json` is configured for legacy decorators (`experimentalDecorators: true`)
-with `useDefineForClassFields: false`. Avoid flipping these unless you are also updating the UI
-build tooling to support standard decorators.
+根目录的 `tsconfig.json` 已按旧版装饰器配置(`experimentalDecorators: true`),并设置 `useDefineForClassFields: false`。除非你同时在升级支持标准装饰器的 UI 构建工具链,否则不要翻转这些选项。
 
-## AI/Vibe-Coded PRs Welcome! 🤖
+## 欢迎 AI/Vibe 编写的 PR!🤖
 
-Built with Codex, Claude, or other AI tools? **Welcome!** No AI-assistance label or disclosure is required.
+用 Codex、Claude 或其他 AI 工具构建的?**欢迎!**不需要 AI 辅助标签,也不需要披露声明。
 
-Please include in your PR:
+请在 PR 中包含:
 
-- [ ] Include a concise **Evidence** section with the most useful validation. Reviewers will inspect the code, tests, and CI rather than relying on the PR body alone.
-- [ ] Confirm you understand what the code does
-- [ ] Run the `autoreview` skill when available and address accepted/actionable findings
-- [ ] Follow the [pull request review flow](https://docs.openclaw.ai/reference/pull-request-review-flow) after Barnacle, ClawSweeper, or maintainer feedback
+- [ ] 附上简明的 **Evidence** 小节,给出最有用的验证内容。Reviewer 会审查代码、测试和 CI,而不是只依赖 PR 正文。
+- [ ] 确认你理解这些代码在做什么
+- [ ] 在可用时运行 `autoreview` skill,并处理被采纳/可执行的发现
+- [ ] 在收到 Barnacle、ClawSweeper 或维护者反馈后,遵循 [pull request review flow](https://docs.openclaw.ai/reference/pull-request-review-flow)
 
-AI PRs are first-class citizens here and follow the same quality and review standards as any other PR.
+AI PR 在这里是第一等公民,与任何其他 PR 遵循相同的质量和评审标准。
 
-## Current Focus & Roadmap 🗺
+## 当前重点与路线图 🗺
 
-We are currently prioritizing:
+我们目前优先推进:
 
-- **Stability**: Fixing edge cases in channel connections (WhatsApp/Telegram).
-- **UX**: Improving the onboarding wizard and error messages.
-- **Skills**: For skill contributions, head to [ClawHub](https://clawhub.ai/) — the community hub for OpenClaw skills.
-- **Performance**: Optimizing token usage and compaction logic.
+- **稳定性**:修复 channel 连接(WhatsApp/Telegram)中的边缘问题。
+- **UX**:改进上手向导和错误消息。
+- **Skills**:技能贡献请前往 [ClawHub](https://clawhub.ai/) —— OpenClaw 技能的社区中心。
+- **性能**:优化 token 使用与压缩(compaction)逻辑。
 
-Check the [GitHub Issues](https://github.com/openclaw/openclaw/issues) for
-["good first issue"](https://github.com/openclaw/openclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-labels. If none are open, pick a small docs or bug issue and leave a quick comment saying
-you'd like to work on it.
+查看 [GitHub Issues](https://github.com/openclaw/openclaw/issues) 中带 ["good first issue"](https://github.com/openclaw/openclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 标签的条目。如果没有开放的,可以挑一个小的文档或 bug issue,留一条简短评论说你想来做。
 
-## Maintainers
+## 维护者
 
-We're selectively expanding the maintainer team.
-If you're an experienced contributor who wants to help shape OpenClaw's direction — whether through code, docs, or community — we'd like to hear from you.
+我们正在有选择地扩充维护者团队。如果你是一位有经验的贡献者,想通过代码、文档或社区工作帮助塑造 OpenClaw 的方向,我们愿意听听你的想法。
 
-Being a maintainer is a responsibility, not an honorary title. We expect active, consistent involvement — triaging issues, reviewing PRs, and helping move the project forward.
+成为维护者是一份责任,而不是荣誉头衔。我们期待持续、积极的投入 —— 分诊 issue、评审 PR、推动项目前进。
 
-Still interested? Email contributing@openclaw.ai with:
+仍然感兴趣?给 contributing@openclaw.ai 发邮件,附上:
 
-- Links to your PRs on OpenClaw (if you don't have any, start there first)
-- Links to open source projects you maintain or actively contribute to
-- Your GitHub, Discord, and X/Twitter handles
-- A brief intro: background, experience, and areas of interest
-- Languages you speak and where you're based
-- How much time you can realistically commit
+- 你在 OpenClaw 上的 PR 链接(如果还没有,先从这里开始)
+- 你维护或积极贡献的开源项目链接
+- 你的 GitHub、Discord 和 X/Twitter 账号
+- 简短的自我介绍:背景、经验和感兴趣的领域
+- 你会说的语言和所在地区
+- 你实际能投入的时间
 
-We welcome people across all skill sets — engineering, documentation, community management, and more.
-We review every human-only-written application carefully and add maintainers slowly and deliberately.
-Please allow a few weeks for a response.
+我们欢迎各种技能背景的人 —— 工程、文档、社区运营等等。我们会认真评审每一份仅由人工撰写的申请,并以缓慢、审慎的节奏增加维护者。请预留几周等待回复。
 
-## Report a Vulnerability
+## 报告漏洞
 
-We take security reports seriously. Report vulnerabilities directly to the repository where the issue lives:
+我们认真对待安全报告。请直接向问题所在的仓库报告漏洞:
 
-- **Core CLI and gateway** — [openclaw/openclaw](https://github.com/openclaw/openclaw)
-- **macOS desktop app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/macos)
-- **iOS app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/ios)
-- **Android app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/android)
+- **核心 CLI 与 Gateway** — [openclaw/openclaw](https://github.com/openclaw/openclaw)
+- **macOS 桌面应用** — [openclaw/openclaw](https://github.com/openclaw/openclaw)(apps/macos)
+- **iOS 应用** — [openclaw/openclaw](https://github.com/openclaw/openclaw)(apps/ios)
+- **Android 应用** — [openclaw/openclaw](https://github.com/openclaw/openclaw)(apps/android)
 - **ClawHub** — [openclaw/clawhub](https://github.com/openclaw/clawhub)
 
-For issues that don't fit a specific repo, or if you're unsure, email **security@openclaw.ai** and we'll route it.
+对于不适合某个具体仓库的问题,或者你不确定时,请发邮件至 **security@openclaw.ai**,我们会进行分流。
 
-### Required in Reports
+### 报告中必须包含
 
-1. **Title**
-2. **Severity Assessment**
-3. **Impact**
-4. **Affected Component**
-5. **Technical Reproduction**
-6. **Demonstrated Impact**
-7. **Environment**
-8. **Remediation Advice**
+1. **标题**
+2. **严重程度评估**
+3. **影响**
+4. **受影响组件**
+5. **技术复现**
+6. **已演示的影响**
+7. **环境**
+8. **修复建议**
 
-Reports without reproduction steps, demonstrated impact, and remediation advice will be deprioritized. Given the volume of AI-generated scanner findings, we must ensure we're receiving vetted reports from researchers who understand the issues.
+> 注:篇幅所限仅译核心章节,完整内容见原项目。

@@ -1,385 +1,282 @@
-# Security Policy
+> 🌐 本文档由 [openclaw/openclaw](https://github.com/openclaw/openclaw) 翻译,英文原版见原项目。
 
-If you believe you've found a security issue in OpenClaw, report it privately first.
+# 安全策略
 
-This policy does two things: it gives researchers a clear disclosure path, and it spells out the trust model maintainers use when triaging reports. OpenClaw is local-first agent infrastructure for trusted operators; it is not designed as a shared multi-tenant boundary between adversarial users on one gateway.
+如果你认为自己在 OpenClaw 中发现了安全问题,请优先私下报告。
 
-The fastest useful reports show a current, reproducible boundary bypass with demonstrated impact. Scanner output, prompt-injection-only chains, or reports that rely on hostile users sharing one trusted gateway are usually not security vulnerabilities under this model.
+本策略有两层作用:一是为安全研究人员提供明确的披露途径,二是阐明维护者在研判报告时所采用的信任模型。OpenClaw 是面向可信操作者的本地优先(local-first)agent 基础设施,它的设计目标并不是在同一个 Gateway 上充当对抗性用户之间的共享多租户隔离边界。
 
-Security work is shared across a number of OpenClaw maintainers, including engineers and security researchers from organizations such as NVIDIA and Tencent. See the [maintainer list](CONTRIBUTING.md#maintainers).
+最有价值的报告,是能当场复现边界绕过且影响可被证实的报告。扫描器输出、仅涉及提示注入(prompt injection)的攻击链,或依赖敌意用户共用同一个可信 Gateway 的报告,在此模型下通常不算安全漏洞。
 
-## Shared Agents
+安全工作由多位 OpenClaw 维护者共同承担,其中包括来自 NVIDIA、腾讯(Tencent)等组织的工程师和安全研究人员。参见[维护者列表](CONTRIBUTING.md#maintainers)。
 
-Anyone who can operate an agent can make it do anything that agent can do. Session ownership, visibility, and presence are usability features, not security boundaries. Turn attribution is best-effort because steering can merge input into an active turn. Use separate agents or separate gateway/host trust boundaries when operators need real isolation.
+## 共享 Agent 的边界
 
-## Report a Security Issue
+任何能够操作某个 agent 的人,都能让该 agent 做它权限范围内的任何事。会话所有权、可见性与在线状态属于易用性特性,而非安全边界。轮次(turn)归因只能是尽力而为,因为引导(steering)可能把输入合并进一个进行中的轮次。当操作者需要真正的隔离时,请使用独立的 agent,或独立的 Gateway/主机信任边界。
 
-Report vulnerabilities directly to the repository where the issue lives:
+## 报告安全问题
 
-- **Core CLI and gateway** — [openclaw/openclaw](https://github.com/openclaw/openclaw)
-- **macOS desktop app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/macos)
-- **iOS app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/ios)
-- **Android app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/android)
+请直接向问题所在的仓库报告漏洞:
+
+- **Core CLI 与 Gateway** — [openclaw/openclaw](https://github.com/openclaw/openclaw)
+- **macOS 桌面应用** — [openclaw/openclaw](https://github.com/openclaw/openclaw)(apps/macos)
+- **iOS 应用** — [openclaw/openclaw](https://github.com/openclaw/openclaw)(apps/ios)
+- **Android 应用** — [openclaw/openclaw](https://github.com/openclaw/openclaw)(apps/android)
 - **ClawHub** — [openclaw/clawhub](https://github.com/openclaw/clawhub)
 
-For issues that don't fit a specific repo, or if you're unsure, email **[security@openclaw.ai](mailto:security@openclaw.ai)** and we'll route it.
+对于不适合归入特定仓库的问题,或者你拿不准时,请发邮件至 **[security@openclaw.ai](mailto:security@openclaw.ai)**,我们会代为流转。
 
-For OpenClaw core issues, submit through a private [GitHub Security Advisory](https://github.com/openclaw/openclaw/security/advisories/new). Do not open a public issue or PR that discloses an unpatched vulnerability, exploit path, secret, or security-sensitive proof of concept.
+对于 OpenClaw 核心问题,请通过私密的 [GitHub Security Advisory](https://github.com/openclaw/openclaw/security/advisories/new) 提交。不要公开发布会泄露未修补漏洞、利用路径、机密信息或安全敏感 PoC 的 issue 或 PR。
 
-Maintainers may close, hide, delete, or otherwise take down public issues and PRs that disclose vulnerabilities or active security issues. We will redirect those reports through the private disclosure process so the issue can be triaged and fixed without giving attackers a public playbook.
+对于公开披露漏洞或活跃安全问题的 issue 与 PR,维护者可能会关闭、隐藏、删除或以其他方式下架。我们会把这类报告引导回私下披露流程,以便在不给攻击者留下公开操作手册的前提下完成研判与修复。
 
-For full reporting instructions see our [Trust page](https://trust.openclaw.ai).
-For maintainer response workflow, see the [incident response plan](docs/security/incident-response.md).
+完整的报告指引参见我们的 [Trust 页面](https://trust.openclaw.ai)。
+维护者的响应流程参见[事件响应计划](docs/security/incident-response.md)。
 
-OpenClaw does not currently run a paid bug bounty program. Please still disclose responsibly so we can fix real issues quickly. The best way to help the project right now is to send high-signal reports and, when practical, focused PRs.
+OpenClaw 目前没有运行付费漏洞赏金计划。但仍请负责任地披露,以便我们尽快修复真实问题。当前对项目最有帮助的方式,是提交高信噪比的报告,并在可行时附上聚焦的 PR。
 
-### What We Need
+### 我们需要什么
 
-Make the report easy to reproduce and easy to route:
-
-- What you found and why you believe it is security-relevant.
-- The affected component, version, and commit SHA when possible.
-- Reproduction steps or a proof of concept against latest `main` or the latest released version.
-- The actual impact, including which OpenClaw trust boundary is crossed.
-- Any remediation advice or focused patch you can provide.
-
-Reports without reproduction steps, demonstrated impact, and remediation advice are deprioritized. We receive a high volume of AI-generated scanner findings, so we prioritize vetted reports from researchers who can show how the issue crosses an OpenClaw security boundary.
-
-### What Usually Is Not a Security Bug
-
-These patterns are usually not vulnerabilities by themselves:
-
-- Prompt injection without a policy, auth, approval, sandbox, or tool-boundary bypass.
-- A trusted operator using an intentional local feature, such as local shell access or browser/script execution.
-- A report whose only primitive is changing the process or child-process environment before running OpenClaw or an executable OpenClaw invokes.
-- A malicious plugin after a trusted operator installs or enables it.
-- Multiple adversarial users sharing one Gateway host/config and expecting per-user isolation.
-- Scanner-only, dependency-only, or stale-path reports without a working repro and demonstrated OpenClaw impact.
-- Public internet exposure or risky deployment choices that the docs already recommend against.
-
-If you are unsure, report privately. We would rather route a careful report than miss a real boundary issue.
-
-### Duplicate Report Handling
-
-- Search existing advisories before filing.
-- Include likely duplicate GHSA IDs in your report when applicable.
-- Maintainers may close lower-quality/later duplicates in favor of the earliest high-quality canonical report.
-
-## Security Posture and Report Rules
-
-The sections below are the normative posture maintainers use for report triage. The headings are editorial; the policy text defines the boundary.
-
-### Detailed Report Acceptance Gate
-
-For fastest triage, include all of the following:
-
-- Exact vulnerable path (`file`, function, and line range) on a current revision.
-- Tested version details (OpenClaw version and/or commit SHA).
-- Reproducible PoC against latest `main` or latest released version.
-- If the claim targets a released version, evidence from the shipped tag and published artifact/package for that exact version (not only `main`).
-- For dependency CVE reports, evidence that the shipped dependency version is actually affected, plus a PoC that reproduces impact through OpenClaw. Showing that OpenClaw can reach a native parser is not enough by itself.
-- Demonstrated impact tied to OpenClaw's documented trust boundaries.
-- For exposed-secret reports: proof the credential is OpenClaw-owned (or grants access to OpenClaw-operated infrastructure/services).
-- Explicit statement that the report does not rely on adversarial operators sharing one gateway host/config.
-- Scope check explaining why the report is **not** covered by the Out of Scope section below.
-- For command-risk/parity reports (for example obfuscation detection differences), a concrete boundary-bypass path is required (auth/approval/allowlist/sandbox). Parity-only findings are treated as hardening, not vulnerabilities.
-
-Reports that miss these requirements may be closed as `invalid` or `no-action`.
-
-### Detailed False-Positive Patterns
-
-These are frequently reported but are typically closed with no code change:
-
-- Prompt-injection-only chains without a boundary bypass (prompt injection is out of scope).
-- Operator-intended local features (for example TUI local `!` shell) presented as remote injection.
-- Reports that treat explicit operator-control surfaces (for example browser evaluate/script execution or direct `node.invoke` execution primitives) as vulnerabilities without demonstrating an auth/policy/sandbox boundary bypass. These capabilities are intentional when enabled and are trusted-operator features, not standalone security bugs.
-- Reports that treat an admin-gated enablement or arming step as requiring `operator.admin` for every subsequent action, when the documented contract delegates use of the enabled capability to `operator.write` and no auth, arming, allowlist, sandbox, or policy bypass is shown. This is an arm-then-use operator guardrail, not privilege escalation.
-- Authorized user-triggered local actions presented as privilege escalation. Example: an allowlisted/owner sender running `/export-session /absolute/path.html` to write on the host. In this trust model, authorized user actions are trusted host actions unless you demonstrate an auth/sandbox/boundary bypass.
-- Reports that only show a malicious plugin executing privileged actions after a trusted operator installs/enables it.
-- Reports that assume per-user multi-tenant authorization on a shared gateway host/config.
-- Reports that only show quoted/replied/thread/forwarded supplemental context from non-allowlisted senders being visible to the model, without demonstrating an auth, policy, approval, or sandbox boundary bypass.
-- Reports that treat the Gateway HTTP compatibility endpoints (`POST /v1/chat/completions`, `POST /v1/responses`) as if they implemented scoped operator auth (`operator.write` vs `operator.admin`). These endpoints authenticate the shared Gateway bearer secret/password and are documented full operator-access surfaces, not per-user/per-scope boundaries.
-- Reports that assume `x-openclaw-scopes` can reduce or redefine shared-secret bearer auth on the OpenAI-compatible HTTP endpoints. For shared-secret auth (`gateway.auth.mode="token"` or `"password"`), those endpoints ignore narrower bearer-declared scopes and restore the full default operator scope set plus owner semantics.
-- Reports that treat `POST /tools/invoke` under shared-secret bearer auth (`gateway.auth.mode="token"` or `"password"`) as a narrower per-request/per-scope authorization surface. That endpoint is designed as the same trusted-operator HTTP boundary: shared-secret bearer auth is full operator access there, narrower `x-openclaw-scopes` values do not reduce that path, and owner-only tool policy follows the shared-secret operator contract.
-- Reports that only show differences in heuristic detection/parity (for example obfuscation-pattern detection on one exec path but not another, such as `node.invoke -> system.run` parity gaps) without demonstrating bypass of auth, approvals, allowlist enforcement, sandboxing, or other documented trust boundaries.
-- Reports that only show an ACP tool can indirectly execute, mutate, orchestrate sessions, or reach another tool/runtime without demonstrating bypass of ACP prompt/approval, allowlist enforcement, sandboxing, or another documented trust boundary. ACP silent approval is intentionally limited to narrow readonly classes; parity-only indirect-command findings are hardening, not vulnerabilities.
-- Reports that only show untrusted media bytes reaching a maintained native decoder dependency (for example image codec libraries such as libheif) without proving the shipped dependency version is vulnerable and demonstrating crash, memory corruption, data exposure, or a boundary bypass through OpenClaw. JavaScript header sniffing and image dimension fast-paths are preflight/UX checks, not the security boundary for native decoder correctness.
-- Reports whose only impact is transient extra memory, CPU, or allocation work from decoding, base64 expansion, media transcoding, serialization, or other format conversion after the input was already accepted under OpenClaw's configured size/trust limits, including base64 decode-before-size-estimate findings. These are performance issues, not vulnerabilities, unless the report demonstrates unauthenticated amplification, bypass of configured limits, crash/process termination, persistent resource exhaustion, data exposure, or another documented boundary bypass.
-- ReDoS/DoS claims that require trusted operator configuration input (for example catastrophic regex in `sessionFilter` or `logging.redactPatterns`) without a trust-boundary bypass.
-- Archive/install extraction claims that require pre-existing local filesystem priming in trusted state (for example planting symlink/hardlink aliases under destination directories such as skills/tools paths) without showing an untrusted path that can create/control that primitive.
-- Reports that depend on replacing or rewriting an already-approved executable path on a trusted host (same-path inode/content swap) without showing an untrusted path to perform that write.
-- Reports that depend on attacker-controlled environment variables changing executable behavior, including variables that redirect lookup paths, preload code, select wrappers/interpreters, alter package-manager or runtime hooks, or make one executable call another executable. Control of the process or child-process environment is trusted host/operator control in OpenClaw's model; these reports need a separate OpenClaw boundary bypass that lets untrusted input set or mutate that environment.
-- Reports that depend on pre-existing symlinked skill/workspace filesystem state (for example symlink chains involving `skills/*/SKILL.md`) without showing an untrusted path that can create/control that state.
-- Missing HSTS findings on default local/loopback deployments.
-- Reports against test-only harnesses, QA Lab, QE Lab, E2E fixtures, benchmark rigs, or maintainer-only debugging tools when the vulnerable code is not shipped as a supported production surface.
-- Slack webhook signature findings when HTTP mode already uses signing-secret verification.
-- Discord inbound webhook signature findings for paths not used by this repo's Discord integration.
-- Claims that Microsoft Teams `fileConsent/invoke` `uploadInfo.uploadUrl` is attacker-controlled without demonstrating one of: auth boundary bypass, a real authenticated Teams/Bot Framework event carrying attacker-chosen URL, or compromise of the Microsoft/Bot trust path.
-- Scanner-only claims against stale/nonexistent paths, or claims without a working repro.
-- Reports that restate an already-fixed issue against later released versions without showing the vulnerable path still exists in the shipped tag or published artifact for that later version.
-- SSRF reports against the operator-managed HTTP/WebSocket proxy-routing feature whose only claim is that ordinary process-local HTTP clients (`fetch`, `node:http`, `node:https`, WebSocket clients, axios/got/node-fetch-style clients) can reach an internal, metadata, private, or otherwise sensitive destination when proxy routing is disabled, missing, or the operator-managed proxy policy allows it. For this feature, OpenClaw provides fail-closed proxy routing when enabled; the external proxy's destination policy is operator infrastructure, not an OpenClaw-controlled security boundary. See [Network proxy](https://docs.openclaw.ai/security/network-proxy).
-
-### Maintainer GHSA Updates via CLI
-
-When patching a GHSA via `gh api`, include `X-GitHub-Api-Version: 2022-11-28` (or newer). Without it, some fields (notably CVSS) may not persist even if the request returns 200.
-
-### Operator Trust Model
-
-OpenClaw does **not** model one gateway as a multi-tenant, adversarial user boundary.
-
-- Authenticated Gateway callers are treated as trusted operators for that gateway instance.
-- Direct localhost/loopback Control UI and Gateway WebSocket sessions authenticated with the shared gateway secret (`token` / `password`) are in that same trusted-operator bucket. Local auto-paired device sessions on that path are expected to retain full localhost operator capability; they do not create a separate `operator.write` vs `operator.admin` security boundary.
-- The HTTP compatibility endpoints (`POST /v1/chat/completions`, `POST /v1/responses`) and direct tool endpoint (`POST /tools/invoke`) are in that same trusted-operator bucket. Passing Gateway bearer auth there is equivalent to operator access for that gateway; they do not implement a narrower `operator.write` vs `operator.admin` trust split.
-- Concretely, on the OpenAI-compatible HTTP surface:
-  - shared-secret bearer auth (`token` / `password`) authenticates possession of the gateway operator secret
-  - those requests receive the full default operator scope set (`operator.admin`, `operator.read`, `operator.write`, `operator.approvals`, `operator.pairing`)
-  - chat-turn endpoints (`/v1/chat/completions`, `/v1/responses`) also treat those shared-secret callers as owner senders for owner-only tool policy
-  - `POST /tools/invoke` follows that same shared-secret rule and also treats those callers as owner senders for owner-only tool policy
-  - narrower `x-openclaw-scopes` headers are ignored for that shared-secret path
-  - only identity-bearing HTTP modes (for example trusted proxy auth or `gateway.auth.mode="none"` on private ingress) honor declared per-request operator scopes
-- Session identifiers (`sessionKey`, session IDs, labels) are routing controls, not per-user authorization boundaries.
-- If one operator can view data from another operator on the same gateway, that is expected in this trust model.
-- OpenClaw can technically run multiple gateway instances on one machine, but recommended operations are clean separation by trust boundary.
-- Recommended mode: one user per machine/host (or VPS), one gateway for that user, and one or more agents inside that gateway.
-- If multiple users need OpenClaw, use one VPS (or host/OS user boundary) per user.
-- For advanced setups, multiple gateways on one machine are possible, but only with strict isolation and are not the recommended default.
-- Exec behavior is host-first by default: `agents.defaults.sandbox.mode` defaults to `off`.
-- `tools.exec.host` defaults to `auto`: sandbox when sandbox runtime is active for the session, otherwise gateway.
-- Implicit exec calls (no explicit host in the tool call) follow the same behavior.
-- This is expected in OpenClaw's one-user trusted-operator model. If you need isolation, enable sandbox mode (`non-main`/`all`) and keep strict tool policy.
-
-### Trusted Plugins
-
-Plugins/extensions are part of OpenClaw's trusted computing base for a gateway.
-
-- Installing or enabling a plugin grants it the same trust level as local code running on that gateway host.
-- Plugin behavior such as reading env/files or running host commands is expected inside this trust boundary.
-- Security reports must show a boundary bypass (for example unauthenticated plugin load, allowlist/policy bypass, or sandbox/path-safety bypass), not only malicious behavior from a trusted-installed plugin.
-
-### Out of Scope
-
-- Public Internet Exposure
-- Using OpenClaw in ways that the docs recommend not to
-- Test-only code and maintainer harnesses, including QA Lab, QE Lab, E2E fixtures, benchmark rigs, smoke-test containers, and local debugging proxies, unless the report demonstrates that the same vulnerable behavior is reachable from shipped OpenClaw production code or a published package artifact intended for users.
-- Deployments where mutually untrusted/adversarial operators share one gateway host and config (for example, reports expecting per-operator isolation for `sessions.list`, `sessions.preview`, `chat.history`, or similar control-plane reads)
-- Prompt-injection-only attacks (without a policy/auth/sandbox boundary bypass)
-- Reports that require write access to trusted local state (`~/.openclaw`, workspace files like `MEMORY.md` / `memory/*.md`)
-- Reports where exploitability depends on attacker-controlled pre-existing symlink/hardlink filesystem state in trusted local paths (for example extraction/install target trees) unless a separate untrusted boundary bypass is shown that creates that state.
-- Reports whose only claim is sandbox/workspace read expansion through trusted local skill/workspace symlink state (for example `skills/*/SKILL.md` symlink chains) unless a separate untrusted boundary bypass is shown that creates/controls that state.
-- Reports whose only claim is post-approval executable identity drift on a trusted host via same-path file replacement/rewrite unless a separate untrusted boundary bypass is shown for that host write primitive.
-- Reports whose only claim is environment-variable-driven executable behavior change, including path lookup changes, preload hooks, wrapper/interpreter selection, package-manager/runtime hooks, or variables that make an executable invoke another executable, unless a separate OpenClaw boundary bypass lets untrusted input set or mutate that environment.
-- Reports where the only demonstrated impact is an already-authorized sender intentionally invoking a local-action command (for example `/export-session` writing to an absolute host path) without bypassing auth, sandbox, or another documented boundary
-- Reports whose only claim is use of an explicit trusted-operator control surface (for example browser evaluate/script execution or direct `node.invoke` execution) without demonstrating an auth, policy, allowlist, approval, or sandbox bypass.
-- Reports where the only claim is that a trusted-installed/enabled plugin can execute with gateway/host privileges (documented trust model behavior).
-- Any report whose only claim is that an operator-enabled `dangerous*`/`dangerously*` config option weakens defaults (these are explicit break-glass tradeoffs by design)
-- Reports that depend on trusted operator-supplied configuration values to trigger availability impact (for example custom regex patterns). These may still be fixed as defense-in-depth hardening, but are not security-boundary bypasses.
-- Reports whose only claim is heuristic/parity drift in command-risk detection (for example obfuscation-pattern checks) across exec surfaces, without a demonstrated trust-boundary bypass. These are hardening-only findings and are not vulnerabilities; triage may close them as `invalid`/`no-action` or track them separately as low/informational hardening.
-- Reports whose only claim is that an ACP-exposed tool can indirectly execute commands, mutate host state, or reach another privileged tool/runtime without demonstrating a bypass of ACP prompt/approval, allowlist enforcement, sandboxing, or another documented trust boundary. These are hardening-only findings, not vulnerabilities.
-- Reports whose only claim is that exec approvals do not semantically model every interpreter/runtime loader form, subcommand, flag combination, package script, or transitive module/config import. Exec approvals bind exact request context and best-effort direct local file operands; they are not a complete semantic model of everything a runtime may load.
-- Reports whose only claim is parser reachability in an up-to-date maintained dependency without showing that the exact shipped dependency build is vulnerable. We keep native media dependencies current; dependency exposure alone is not a vulnerability.
-- Reports whose only claim is resource overhead from decode/encode, base64 expansion, media transcoding, serialization, or format-conversion order after input has already passed the applicable configured acceptance limits, including base64 decode-before-size-estimate findings. These are performance-only and should be ignored for GHSA triage unless the report demonstrates unauthenticated amplification, limit bypass, crash/process termination, persistent exhaustion, data exposure, or another documented boundary bypass.
-- Exposed secrets that are third-party/user-controlled credentials (not OpenClaw-owned and not granting access to OpenClaw-operated infrastructure/services) without demonstrated OpenClaw impact
-- Reports whose only claim is host-side exec when sandbox runtime is disabled/unavailable (documented default behavior in the trusted-operator model), without a boundary bypass.
-- Reports whose only claim is that a platform-provided upload destination URL is untrusted (for example Microsoft Teams `fileConsent/invoke` `uploadInfo.uploadUrl`) without proving attacker control in an authenticated production flow.
-- SSRF reports limited to the operator-managed HTTP/WebSocket proxy-routing feature where the demonstrated mitigation is to enable/configure `proxy.enabled` with a filtering `proxy.proxyUrl`/`OPENCLAW_PROXY_URL`, or where impact depends on a permissive/misconfigured operator proxy. This only covers normal process-local HTTP(S)/WebSocket egress (`fetch`, Node HTTP(S), and similar JavaScript clients); non-HTTP egress and other features are assessed separately. See [Network proxy](https://docs.openclaw.ai/security/network-proxy).
+请让报告易于复现、易于流转:
+
+- 你发现了什么,以及为什么认为它与安全相关。
+- 受影响的组件、版本,尽可能附上 commit SHA。
+- 针对 `main` 最新代码或最新发布版本的复现步骤或 PoC。
+- 实际影响,包括跨越了哪条 OpenClaw 信任边界。
+- 你能提供的任何修复建议或聚焦补丁。
+
+缺少复现步骤、可证实影响或修复建议的报告会被降级处理。我们收到大量 AI 生成的扫描器结论,因此优先处理那些能说明问题如何跨越 OpenClaw 安全边界的、经过验证的研究人员报告。
+
+### 通常不算安全漏洞的情形
+
+以下模式本身通常不构成漏洞:
+
+- 不涉及策略、认证、审批、沙箱或工具边界绕过的纯提示注入。
+- 可信操作者使用有意的本地特性,例如本地 shell 访问或浏览器/脚本执行。
+- 报告的唯一前提只是在运行 OpenClaw 或其调用的可执行文件之前,更改进程或子进程环境。
+- 可信操作者安装或启用之后的恶意插件。
+- 多个对抗性用户共享同一个 Gateway 主机/配置,却期望获得按用户隔离。
+- 仅有扫描器结果、仅涉及依赖项,或基于过期路径、且没有可用复现和可证实 OpenClaw 影响的报告。
+- 文档已明确不建议的公网暴露或其他有风险的部署选择。
+
+拿不准时,请私下报告。我们宁可多流转一份谨慎的报告,也不愿漏掉真实的边界问题。
+
+### 重复报告的处理
+
+- 提交前先检索已有 advisory。
+- 适用时,在报告中列出可能重复的 GHSA ID。
+- 维护者可能关闭质量较低或较晚的重复报告,保留最早的高质量权威报告。
+
+## 安全态势与报告裁定规则
+
+以下章节是维护者用于报告研判的规范性态势说明。标题仅供编排,边界以政策条文为准。
+
+### 详尽报告的受理门槛
+
+为获得最快的研判,请包含以下全部内容:
+
+- 当前版本上存在漏洞的精确路径(`file`、函数与行号范围)。
+- 已测试版本的详细信息(OpenClaw 版本和/或 commit SHA)。
+- 针对 `main` 最新代码或最新发布版本的可复现 PoC。
+- 如果主张针对某个已发布版本,需提供该确切版本的发布 tag 及已发布产物/包中的证据(不能只给 `main`)。
+- 对于依赖项 CVE 报告,需证明随版本分发的依赖版本确实受影响,并提供能通过 OpenClaw 复现影响的 PoC。仅证明 OpenClaw 能触达某个原生解析器是不够的。
+- 与 OpenClaw 已文档化信任边界绑定的、可证实的影响。
+- 对于泄露密钥类报告:需证明该凭据归 OpenClaw 所有(或可访问 OpenClaw 运营的基础设施/服务)。
+- 明确声明该报告不依赖对抗性操作者共享同一 Gateway 主机/配置。
+- 范围核查:说明该报告为何**不**属于下文"范围外情形"章节。
+- 对于命令风险/一致性类报告(例如混淆检测差异),必须给出具体的边界绕过路径(认证/审批/允许列表/沙箱)。仅涉及一致性的发现按加固处理,不算漏洞。
+
+不满足上述要求的报告可能被以 `invalid` 或 `no-action` 关闭。
+
+### 详细的误报模式
+
+以下情况经常被报告,但通常不做代码修改即关闭:
+
+- 不含边界绕过的纯提示注入链(提示注入本身超出范围)。
+- 把操作者有意使用的本地特性(例如 TUI 本地 `!` shell)当作远程注入来报告。
+- 把明确的操作者控制面(例如浏览器 evaluate/脚本执行,或直接 `node.invoke` 执行原语)当作漏洞,却未展示认证/策略/沙箱边界绕过的报告。这些能力在启用时是有意提供的,属于可信操作者特性,而不是独立的安全缺陷。
+- 把"管理员门控的启用/武装步骤"当作"后续每个动作都要求 `operator.admin`"的报告,而文档契约已将已启用能力的使用委派给 `operator.write`,且未展示任何认证、武装、允许列表、沙箱或策略绕过。这是"先武装后使用"的操作者防护栏,不是提权。
+- 把授权用户触发的本地动作当作提权的报告。例如:允许列表内/所有者发送者运行 `/export-session /absolute/path.html` 在主机上写文件。在此信任模型中,授权用户的动作即为可信的主机动作,除非你展示认证/沙箱/边界绕过。
+- 仅展示"可信操作者安装/启用后恶意插件执行特权动作"的报告。
+- 假设共享 Gateway 主机/配置上存在按用户多租户授权的报告。
+- 仅展示来自非允许列表发送者的引用/回复/话题/转发补充上下文对模型可见,却未展示认证、策略、审批或沙箱边界绕过的报告。
+- 把 Gateway HTTP 兼容端点(`POST /v1/chat/completions`、`POST /v1/responses`)当作实现了按作用域操作者认证(`operator.write` 与 `operator.admin` 之分)的报告。这些端点认证的是共享的 Gateway bearer 密钥/密码,是文档声明的完整操作者访问面,并非按用户/按作用域的边界。
+- 假设 `x-openclaw-scopes` 能够削弱或重定义 OpenAI 兼容 HTTP 端点上共享密钥 bearer 认证的报告。对于共享密钥认证(`gateway.auth.mode="token"` 或 `"password"`),这些端点会忽略更窄的 bearer 声明作用域,并恢复完整的默认操作者作用域集合加上所有者(owner)语义。
+- 把共享密钥 bearer 认证(`gateway.auth.mode="token"` 或 `"password"`)下的 `POST /tools/invoke` 当作更窄的按请求/按作用域授权面的报告。该端点被设计为同一条可信操作者 HTTP 边界:共享密钥 bearer 认证在该路径上即完整操作者权限,更窄的 `x-openclaw-scopes` 值不会收窄它,owner-only 工具策略同样遵循共享密钥操作者契约。
+- 仅展示启发式检测/一致性差异(例如某条 exec 路径有混淆模式检测而另一条没有,如 `node.invoke -> system.run` 的一致性缺口),却未展示对认证、审批、允许列表强制、沙箱或其他已文档化信任边界的绕过的报告。
+- 仅展示某个 ACP 工具可以间接执行、变更、编排会话或触达其他工具/运行时,却未展示对 ACP 提示/审批、允许列表强制、沙箱或其他已文档化信任边界的绕过的报告。ACP 静默审批被有意限定在极窄的只读类别;仅涉及一致性的间接命令发现属于加固,不算漏洞。
+- 仅展示不可信媒体字节到达某个受维护的原生解码器依赖(例如 libheif 之类图像编解码库),却未证明随版本分发的依赖版本确实存在漏洞,也未通过 OpenClaw 展示崩溃、内存破坏、数据泄露或边界绕过的报告。JavaScript 头部嗅探和图像尺寸快速路径属于预检/UX 检查,不是原生解码器正确性的安全边界。
+- 唯一影响是解码、base64 膨胀、媒体转码、序列化或其他格式转换带来的瞬时额外内存、CPU 或分配开销的报告,前提是输入已经在 OpenClaw 配置的尺寸/信任限制内被接受,包括"先 base64 解码后估算尺寸"类发现。这些属于性能问题而非漏洞,除非报告展示了未认证的放大效应、对配置限制的绕过、崩溃/进程终止、持续性资源耗尽、数据泄露或其他已文档化的边界绕过。
+- 需要可信操作者配置输入才能触发的 ReDoS/DoS 主张(例如 `sessionFilter` 或 `logging.redactPatterns` 中的灾难性正则),且不含信任边界绕过。
+- 需要预先在可信状态下准备好本地文件系统原语(例如在 skills/tools 路径等目标目录下布置符号链接/硬链接别名)的归档/安装解包主张,且未展示可创建/控制该原语的不可信路径。
+- 依赖于替换或改写可信主机上已批准的可执行文件路径(同路径 inode/内容替换)的报告,且未展示执行该写入的不可信路径。
+- 依赖于攻击者可控环境变量改变可执行文件行为的报告,包括重定向查找路径、预加载代码、选择包装器/解释器、篡改包管理器或运行时钩子、或让一个可执行文件调用另一个可执行文件的变量。在 OpenClaw 的模型中,对进程或子进程环境的控制属于可信主机/操作者控制;这类报告需要一个独立的 OpenClaw 边界绕过,使不可信输入能够设置或篡改该环境。
+- 依赖于既存符号链接 skill/workspace 文件系统状态(例如涉及 `skills/*/SKILL.md` 的符号链接链)的报告,且未展示可创建/控制该状态的不可信路径。
+- 默认本地/回环部署上的 HSTS 缺失类发现。
+- 针对纯测试工具、QA Lab、QE Lab、E2E fixture、基准测试装置或维护者专用调试工具的报告,前提是相关脆弱代码并未作为受支持的生产面发布。
+- 在 HTTP 模式已使用签名密钥校验时的 Slack webhook 签名类发现。
+- 本仓库 Discord 集成未使用的路径上的 Discord 入站 webhook 签名类发现。
+- 主张 Microsoft Teams `fileConsent/invoke` 的 `uploadInfo.uploadUrl` 受攻击者控制,却未展示以下任一情形的报告:认证边界绕过、携带攻击者所选 URL 的真实已认证 Teams/Bot Framework 事件,或 Microsoft/Bot 信任路径被攻破。
+- 仅基于扫描器、针对过期/不存在路径的主张,或没有可用复现的主张。
+- 针对较晚发布版本重述已修复问题、却未展示该脆弱路径仍存在于较晚版本发布 tag 或已发布产物中的报告。
+- 针对操作者管理的 HTTP/WebSocket 代理路由功能的 SSRF 报告,其唯一主张是:当代理路由被禁用、缺失,或操作者管理的代理策略允许时,普通进程内 HTTP 客户端(`fetch`、`node:http`、`node:https`、WebSocket 客户端,以及 axios/got/node-fetch 风格的客户端)可以访问内部、元数据、私有或其他敏感目的地。对该功能而言,OpenClaw 在启用时提供失效即关闭(fail-closed)的代理路由;外部代理的目的地策略属于操作者基础设施,不是 OpenClaw 控制的安全边界。参见 [Network proxy](https://docs.openclaw.ai/security/network-proxy)。
+
+### 维护者通过 CLI 更新 GHSA
+
+通过 `gh api` 修补 GHSA 时,请带上 `X-GitHub-Api-Version: 2022-11-28`(或更新版本)。否则某些字段(尤其是 CVSS)即使请求返回 200 也可能不会持久化。
+
+### 操作者信任模型
+
+OpenClaw **不**把单个 Gateway 建模为多租户的对抗性用户边界。
+
+- 通过认证的 Gateway 调用者在该 Gateway 实例中被视为可信操作者。
+- 使用共享 Gateway 密钥(`token` / `password`)完成认证的本地 localhost/回环 Control UI 与 Gateway WebSocket 会话,同属可信操作者范畴。该路径上的本地自动配对设备会话预期保留完整的 localhost 操作者能力;它们不构成 `operator.write` 与 `operator.admin` 之间的独立安全边界。
+- HTTP 兼容端点(`POST /v1/chat/completions`、`POST /v1/responses`)与直接工具端点(`POST /tools/invoke`)同属可信操作者范畴。在这些路径上通过 Gateway bearer 认证即等价于该 Gateway 的操作者访问权限;它们不实现更窄的 `operator.write` 与 `operator.admin` 信任切分。
+- 具体而言,在 OpenAI 兼容 HTTP 面上:
+  - 共享密钥 bearer 认证(`token` / `password`)认证的是"持有 Gateway 操作者密钥"
+  - 这些请求会获得完整的默认操作者作用域集合(`operator.admin`、`operator.read`、`operator.write`、`operator.approvals`、`operator.pairing`)
+  - 对话轮次端点(`/v1/chat/completions`、`/v1/responses`)还会把这些共享密钥调用者视为 owner 发送者,以适用 owner-only 工具策略
+  - `POST /tools/invoke` 遵循同一条共享密钥规则,同样把这些调用者视为 owner 发送者,以适用 owner-only 工具策略
+  - 在该共享密钥路径上,更窄的 `x-openclaw-scopes` 头会被忽略
+  - 只有携带身份的 HTTP 模式(例如可信代理认证,或私有入口上的 `gateway.auth.mode="none"`)才会尊重按请求声明的操作者作用域
+- 会话标识符(`sessionKey`、会话 ID、标签)是路由控制,不是按用户授权边界。
+- 如果一个操作者能在同一个 Gateway 上查看另一个操作者的数据,这在该信任模型中是预期行为。
+- OpenClaw 在技术上可以在一台机器上运行多个 Gateway 实例,但推荐的运维方式是按信任边界干净地分离。
+- 推荐模式:每台机器/主机(或 VPS)一个用户,该用户一个 Gateway,Gateway 内一个或多个 agent。
+- 如果多个用户都需要 OpenClaw,请为每个用户使用一台 VPS(或主机/OS 用户边界)。
+- 对于高级部署,一台机器上运行多个 Gateway 是可行的,但必须有严格隔离,且不是推荐的默认方案。
+- exec 行为默认以主机优先:`agents.defaults.sandbox.mode` 默认为 `off`。
+- `tools.exec.host` 默认为 `auto`:会话启用了沙箱运行时则为 sandbox,否则为 gateway。
+- 隐式 exec 调用(工具调用中未显式指定 host)遵循同样的行为。
+- 这在 OpenClaw 的单用户可信操作者模型中是预期行为。如果需要隔离,请启用沙箱模式(`non-main`/`all`)并保持严格的工具策略。
+
+### 可信插件
+
+插件/扩展属于该 Gateway 可信计算基(TCB)的一部分。
+
+- 安装或启用插件,即授予其与该 Gateway 主机上本地代码相同的信任级别。
+- 在该信任边界内,读取环境变量/文件或运行主机命令等插件行为是预期之中的。
+- 安全报告必须展示边界绕过(例如未认证的插件加载、允许列表/策略绕过,或沙箱/路径安全绕过),而不能只展示可信安装插件的恶意行为。
+
+### 范围外情形
+
+- 公网暴露
+- 以文档不建议的方式使用 OpenClaw
+- 纯测试代码与维护者工具,包括 QA Lab、QE Lab、E2E fixture、基准测试装置、冒烟测试容器和本地调试代理,除非报告能证明同样的脆弱行为可以从随版本发布的 OpenClaw 生产代码或面向用户发布的包产物触达。
+- 相互不信任/对抗的操作者共享同一个 Gateway 主机和配置的部署(例如期望对 `sessions.list`、`sessions.preview`、`chat.history` 或类似控制面读取实现按操作者隔离的报告)
+- 纯提示注入攻击(不含策略/认证/沙箱边界绕过)
+- 需要对可信本地状态(`~/.openclaw`、`MEMORY.md` / `memory/*.md` 等工作区文件)有写权限的报告
+- 可利用性依赖于可信本地路径中攻击者布置的既存符号链接/硬链接文件系统状态(例如解包/安装目标目录树)的报告,除非另外展示了能创建该状态的不可信边界绕过。
+- 唯一主张是"通过可信本地 skill/workspace 符号链接状态实现沙箱/工作区读取范围扩大"(例如 `skills/*/SKILL.md` 符号链接链)的报告,除非另外展示了能创建/控制该状态的不可信边界绕过。
+- 唯一主张是"在可信主机上通过同路径文件替换/改写造成审批后的可执行文件身份漂移"的报告,除非针对该主机写入原语另外展示了不可信边界绕过。
+- 唯一主张是"环境变量驱动的可执行文件行为变化"的报告,包括路径查找变化、预加载钩子、包装器/解释器选择、包管理器/运行时钩子,或让一个可执行文件调用另一个可执行文件的变量,除非存在独立的 OpenClaw 边界绕过让不可信输入能设置或篡改该环境。
+- 唯一可展示的影响是"已获授权的发送者有意调用本地动作命令"(例如 `/export-session` 写入主机的绝对路径),且未绕过认证、沙箱或其他已文档化边界的报告
+- 唯一主张是"使用了显式的可信操作者控制面"(例如浏览器 evaluate/脚本执行,或直接 `node.invoke` 执行),却未展示认证、策略、允许列表、审批或沙箱绕过的报告。
+- 唯一主张是"可信安装/启用的插件能以 Gateway/主机权限执行"的报告(这是已文档化的信任模型行为)。
+- 任何唯一主张是"操作者启用的 `dangerous*`/`dangerously*` 配置项削弱了默认安全性"的报告(这些是设计上明确的破窗权衡)
+- 依赖可信操作者提供的配置值来触发可用性影响的报告(例如自定义正则模式)。这类问题仍可能作为纵深防御加固被修复,但不属于安全边界绕过。
+- 唯一主张是"命令风险检测在各 exec 面之间存在启发式/一致性漂移"(例如混淆模式检查)的报告,且未展示信任边界绕过。这类发现只属于加固,不是漏洞;研判可能以 `invalid`/`no-action` 关闭,或单独作为低危/信息级加固事项跟踪。
+- 唯一主张是"某个经 ACP 暴露的工具可以间接执行命令、变更主机状态或触达其他特权工具/运行时",却未展示对 ACP 提示/审批、允许列表强制、沙箱或其他已文档化信任边界的绕过的报告。这类发现只属于加固,不是漏洞。
+- 唯一主张是"exec 审批未对每一种解释器/运行时加载形态、子命令、flag 组合、包脚本或传递性模块/配置导入建立语义建模"的报告。exec 审批绑定的是精确的请求上下文和尽力识别的直接本地文件操作数;它不是对运行时可能加载的一切内容的完整语义模型。
+- 唯一主张是"某个保持更新的受维护依赖中存在解析器可达性"的报告,却未展示确切的随版本依赖构建确实存在漏洞。我们保持原生媒体依赖的及时更新;仅依赖暴露本身不构成漏洞。
+- 唯一主张是"输入已通过适用的配置接收限制后,解码/编码、base64 膨胀、媒体转码、序列化或格式转换顺序带来的资源开销"的报告,包括"先 base64 解码后估算尺寸"类发现。这类问题只涉及性能,在 GHSA 研判中应予忽略,除非报告展示了未认证放大效应、限制绕过、崩溃/进程终止、持续性耗尽、数据泄露或其他已文档化的边界绕过。
+- 属于第三方/用户自控凭据(不归 OpenClaw 所有,也不授予 OpenClaw 运营基础设施/服务访问权)的泄露密钥,且未展示 OpenClaw 影响
+- 唯一主张是"沙箱运行时被禁用/不可用时的主机侧 exec"(这是可信操作者模型中已文档化的默认行为),且无边界绕过的报告。
+- 唯一主张是"平台提供的上传目标 URL 不可信"(例如 Microsoft Teams `fileConsent/invoke` 的 `uploadInfo.uploadUrl`),却未在已认证的生产流程中证明攻击者控制的报告。
+- 局限于操作者管理的 HTTP/WebSocket 代理路由功能的 SSRF 报告,其中已展示的缓解措施是启用/配置 `proxy.enabled` 并配合带过滤的 `proxy.proxyUrl`/`OPENCLAW_PROXY_URL`,或其影响依赖于宽松/配置不当的操作者代理。这只覆盖普通的进程内 HTTP(S)/WebSocket 出站(`fetch`、Node HTTP(S) 及类似 JavaScript 客户端);非 HTTP 出站与其他功能另行评估。参见 [Network proxy](https://docs.openclaw.ai/security/network-proxy)。
 
-### Deployment Assumptions
+### 部署假设
 
-OpenClaw security guidance assumes:
+OpenClaw 的安全指引基于以下假设:
 
-- The host where OpenClaw runs is within a trusted OS/admin boundary.
-- Anyone who can set or mutate the OpenClaw process environment, launcher environment, or child-process environment is inside that trusted host/operator boundary.
-- Anyone who can modify `~/.openclaw` state/config (including `openclaw.json`) is effectively a trusted operator.
-- A single Gateway shared by mutually untrusted people is **not a recommended setup**. Use separate gateways (or at minimum separate OS users/hosts) per trust boundary.
-- Authenticated Gateway callers are treated as trusted operators. Session identifiers (for example `sessionKey`) are routing controls, not per-user authorization boundaries.
-- Multiple gateway instances can run on one machine, but the recommended model is clean per-user isolation (prefer one host/VPS per user).
+- OpenClaw 运行的主机处于可信的 OS/管理员边界之内。
+- 任何能够设置或篡改 OpenClaw 进程环境、启动器环境或子进程环境的人,都在该可信主机/操作者边界之内。
+- 任何能够修改 `~/.openclaw` 状态/配置(包括 `openclaw.json`)的人,实际上都是可信操作者。
+- 由相互不信任的人共享单个 Gateway **不是推荐配置**。请为每个信任边界使用独立的 Gateway(至少使用独立的 OS 用户/主机)。
+- 通过认证的 Gateway 调用者被视为可信操作者。会话标识符(例如 `sessionKey`)是路由控制,不是按用户授权边界。
+- 一台机器上可以运行多个 Gateway 实例,但推荐模型是干净的按用户隔离(最好每个用户一台主机/VPS)。
 
-### One-User Trust Model
+### 单用户信任模型
 
-OpenClaw's security model is "personal assistant" (one trusted operator, potentially many agents), not "shared multi-tenant bus."
+OpenClaw 的安全模型是"个人助手"(一个可信操作者,可能带多个 agent),而不是"共享多租户总线"。
 
-- If multiple people can message the same tool-enabled agent (for example a shared Slack workspace), they can all steer that agent within its granted permissions.
-- Non-owner sender status only affects owner-only tools/commands. If a non-owner can still access a non-owner-only tool on that same agent (for example `canvas`), that is within the granted tool boundary unless the report demonstrates an auth, policy, allowlist, approval, or sandbox bypass.
-- Session or memory scoping reduces context bleed, but does **not** create per-user host authorization boundaries.
-- For mixed-trust or adversarial users, isolate by OS user/host/gateway and use separate credentials per boundary.
-- A company-shared agent can be a valid setup when users are in the same trust boundary and the agent is strictly business-only.
-- For company-shared setups, use a dedicated machine/VM/container and dedicated accounts; avoid mixing personal data on that runtime.
-- If that host/browser profile is logged into personal accounts (for example Apple/Google/personal password manager), you have collapsed the boundary and increased personal-data exposure risk.
+- 如果多个人都能给同一个启用了工具的 agent 发消息(例如共享的 Slack 工作区),他们都能在该 agent 被授予的权限范围内引导它。
+- 非 owner 发送者状态只影响 owner-only 工具/命令。如果非 owner 仍能在同一个 agent 上访问某个非 owner-only 的工具(例如 `canvas`),那就在被授予的工具边界之内,除非报告展示了认证、策略、允许列表、审批或沙箱绕过。
+- 会话或内存作用域隔离可以减少上下文串扰,但**不会**创建按用户的主机授权边界。
+- 对于信任混合或对抗性用户,请按 OS 用户/主机/Gateway 隔离,并为每个边界使用独立凭据。
+- 当用户处于同一信任边界且 agent 严格只用于业务时,公司共享 agent 可以是合理配置。
+- 对于公司共享场景,请使用专用机器/VM/容器和专用账号,避免在该运行时上混入个人数据。
+- 如果该主机/浏览器配置文件登录了个人账号(例如 Apple/Google/个人密码管理器),你就已经抹平了边界,并放大了个人数据暴露风险。
 
-### Context Visibility and Allowlists
+### 上下文可见性与允许列表
 
-OpenClaw distinguishes:
+OpenClaw 区分:
 
-- **Trigger authorization**: who can trigger the agent (`dmPolicy`, `groupPolicy`, allowlists, mention gates)
-- **Context visibility**: what supplemental context is provided to the model (reply body, quoted text, thread history, forwarded metadata)
+- **触发授权**:谁能触发 agent(`dmPolicy`、`groupPolicy`、允许列表、提及门控)
+- **上下文可见性**:哪些补充上下文会提供给模型(回复正文、引用文本、话题历史、转发元数据)
 
-In current releases, allowlists primarily gate triggering and owner-style command access. They do not guarantee universal supplemental-context redaction across every channel/surface.
+在当前版本中,允许列表主要用于控制触发和 owner 风格的命令访问。它们不保证在所有渠道/面上都进行普遍的补充上下文脱敏。
 
-Current channel behavior is not fully uniform:
-
-- some channels already filter parts of supplemental context by sender allowlist
-- other channels still pass supplemental context as received
-
-Reports that only show supplemental-context visibility differences are typically hardening/consistency findings unless they also demonstrate a documented boundary bypass (auth, policy, approvals, sandbox, or equivalent).
+当前各渠道行为尚不完全一致:
 
-Hardening roadmap may add explicit visibility modes (for example `all`, `allowlist`, `allowlist_quote`) so operators can opt into stricter context filtering with predictable tradeoffs.
+- 部分渠道已按发送者允许列表过滤部分补充上下文
+- 其他渠道仍按原样传递补充上下文
 
-### Agent and Model Assumptions
+仅展示补充上下文可见性差异的报告,通常属于加固/一致性发现,除非同时展示了已文档化的边界绕过(认证、策略、审批、沙箱或同类机制)。
 
-- The model/agent is **not** a trusted principal. Assume prompt/content injection can manipulate behavior.
-- Security boundaries come from host/config trust, auth, tool policy, sandboxing, and exec approvals.
-- Prompt injection by itself is not a vulnerability report unless it crosses one of those boundaries.
-- Hook/webhook-driven payloads should be treated as untrusted content; keep unsafe bypass flags disabled unless doing tightly scoped debugging (`hooks.gmail.allowUnsafeExternalContent`, `hooks.mappings[].allowUnsafeExternalContent`).
-- Weak model tiers are generally easier to prompt-inject. For tool-enabled or hook-driven agents, prefer strong modern model tiers and strict tool policy (for example `tools.profile: "messaging"` or stricter), plus sandboxing where possible.
+加固路线图可能会加入显式的可见性模式(例如 `all`、`allowlist`、`allowlist_quote`),让操作者能够以可预期的权衡选择更严格的上下文过滤。
 
-### Gateway and Node Trust Concept
+### Agent 与模型假设
 
-OpenClaw separates routing from execution, but both remain inside the same operator trust boundary:
+- 模型/agent **不是**可信主体。应假设提示/内容注入可以操纵其行为。
+- 安全边界来自主机/配置信任、认证、工具策略、沙箱和 exec 审批。
+- 提示注入本身不构成漏洞报告,除非它跨越了上述某条边界。
+- 由 hook/webhook 驱动的载荷应被视为不可信内容;除非进行严格限定范围的调试,否则保持不安全的绕过 flag 处于禁用状态(`hooks.gmail.allowUnsafeExternalContent`、`hooks.mappings[].allowUnsafeExternalContent`)。
+- 较弱的模型层级通常更容易被提示注入。对于启用工具或由 hook 驱动的 agent,建议选用较强的现代模型层级并执行严格的工具策略(例如 `tools.profile: "messaging"` 或更严格),并尽可能叠加沙箱。
 
-- **Gateway** is the control plane. If a caller passes Gateway auth, they are treated as a trusted operator for that Gateway.
-- **Node** is an execution extension of the Gateway. Pairing a node grants operator-level remote capability on that node.
-- **Exec approvals** (allowlist/ask UI) are operator guardrails to reduce accidental command execution, not a multi-tenant authorization boundary.
-- Exec approvals bind exact command/cwd/env context and, when OpenClaw can identify one concrete local script/file operand, that file snapshot too. This is best-effort integrity hardening, not a complete semantic model of every interpreter/runtime loader path.
-- Differences in command-risk warning heuristics between exec surfaces (`gateway`, `node`, `sandbox`) do not, by themselves, constitute a security-boundary bypass.
-- For untrusted-user isolation, split by trust boundary: separate gateways and separate OS users/hosts per boundary.
+### Gateway 与 Node 的信任概念
 
-### Workspace Memory Trust Boundary
+OpenClaw 将路由与执行分离,但两者仍处于同一个操作者信任边界之内:
 
-`MEMORY.md` and `memory/*.md` are plain workspace files and are treated as trusted local operator state.
+- **Gateway** 是控制面。调用者通过 Gateway 认证后,即被视为该 Gateway 的可信操作者。
+- **Node** 是 Gateway 的执行扩展。与 node 配对即在该 node 上授予操作者级别的远程能力。
+- **exec 审批**(允许列表/询问 UI)是减少意外命令执行的操作者防护栏,不是多租户授权边界。
+- exec 审批绑定精确的命令/cwd/env 上下文,并且当 OpenClaw 能识别出某个具体的本地脚本/文件操作数时,还会绑定该文件的快照。这是尽力而为的完整性加固,不是对所有解释器/运行时加载路径的完整语义建模。
+- 各 exec 面(`gateway`、`node`、`sandbox`)之间命令风险警告启发式的差异,本身不构成安全边界绕过。
+- 需要隔离不可信用户时,请按信任边界拆分:每个边界独立的 Gateway 与独立的 OS 用户/主机。
 
-- If someone can edit workspace memory files, they already crossed the trusted operator boundary.
-- Memory search indexing/recall over those files is expected behavior, not a sandbox/security boundary.
-- Example report pattern considered out of scope: "attacker writes malicious content into `memory/*.md`, then `memory_search` returns it."
-- If you need isolation between mutually untrusted users, split by OS user or host and run separate gateways.
+### 工作区内存信任边界
 
-### Plugin Trust Boundary
+`MEMORY.md` 与 `memory/*.md` 是普通的工作区文件,被视为可信的本地操作者状态。
 
-Plugins/extensions are loaded **in-process** with the Gateway and are treated as trusted code.
+- 如果有人能编辑工作区内存文件,那他已经越过了可信操作者边界。
+- 对这些文件的内存搜索索引/召回是预期行为,不是沙箱/安全边界。
+- 被视为范围外的典型报告模式:"攻击者把恶意内容写进 `memory/*.md`,然后 `memory_search` 会返回它。"
+- 如果需要在相互不信任的用户之间隔离,请按 OS 用户或主机拆分,并运行独立的 Gateway。
 
-- Plugins can execute with the same OS privileges as the OpenClaw process.
-- Runtime helpers (for example `runtime.system.runCommandWithTimeout`) are convenience APIs, not a sandbox boundary.
-- Only install plugins you trust, and prefer `plugins.allow` to pin explicit trusted plugin ids.
+### 插件信任边界
 
-### Temp Folder Boundary
+插件/扩展与 Gateway **在同一进程内**加载,被视为可信代码。
 
-OpenClaw uses a dedicated temp root for local media handoff and sandbox-adjacent temp artifacts:
+- 插件可以以与 OpenClaw 进程相同的 OS 权限执行。
+- 运行时辅助 API(例如 `runtime.system.runCommandWithTimeout`)是便利接口,不是沙箱边界。
+- 只安装你信任的插件,并优先使用 `plugins.allow` 显式固定受信任的插件 id。
 
-- Preferred temp root: `/tmp/openclaw` (when available and safe on the host).
-- Fallback temp root: `os.tmpdir()/openclaw` (or `openclaw-<uid>` on multi-user hosts).
+### 临时目录边界
 
-Security boundary notes:
+OpenClaw 使用一个专用的临时根目录来处理本地媒体交接和沙箱相关的临时产物:
 
-- Sandbox media validation allows absolute temp paths only under the OpenClaw-managed temp root.
-- Arbitrary host tmp paths are not treated as trusted media roots.
-- Plugin/extension code should use OpenClaw temp helpers (`resolvePreferredOpenClawTmpDir`, `buildRandomTempFilePath`, `withTempDownloadPath`) rather than raw `os.tmpdir()` defaults when handling media files.
-- Enforcement reference points:
-  - temp root resolver: `src/infra/tmp-openclaw-dir.ts`
-  - SDK temp helpers: `src/plugin-sdk/temp-path.ts`
-  - messaging/channel tmp guardrail: `scripts/check-no-random-messaging-tmp.mts`
+- 首选临时根目录:`/tmp/openclaw`(在主机上可用且安全时)。
+- 回退临时根目录:`os.tmpdir()/openclaw`(多用户主机上为 `openclaw-<uid>`)。
 
-### Operational Guidance
+安全边界说明:
 
-For threat model + hardening guidance (including `openclaw security audit --deep` and `--fix`), see:
+- 沙箱媒体校验只允许位于 OpenClaw 管理的临时根目录之下的绝对临时路径。
+- 任意的主机 tmp 路径不会被视为可信媒体根目录。
+- 插件/扩展代码处理媒体文件时,应使用 OpenClaw 的临时路径辅助函数(`resolvePreferredOpenClawTmpDir`、`buildRandomTempFilePath`、`withTempDownloadPath`),而不要直接使用裸的 `os.tmpdir()` 默认值。
+- 强制执行参考位置:
+  - 临时根目录解析器:`src/infra/tmp-openclaw-dir.ts`
+  - SDK 临时路径辅助:`src/plugin-sdk/temp-path.ts`
+  - messaging/channel 临时目录守护检查:`scripts/check-no-random-messaging-tmp.mts`
 
-- `https://docs.openclaw.ai/gateway/security`
-
-#### Tool Filesystem Hardening
-
-- `tools.exec.applyPatch.workspaceOnly: true` (recommended): keeps `apply_patch` writes/deletes within the configured workspace directory.
-- `tools.fs.workspaceOnly: true` (optional): restricts `read`/`write`/`edit`/`apply_patch` paths and native prompt image auto-load paths to the workspace directory.
-- Avoid setting `tools.exec.applyPatch.workspaceOnly: false` unless you fully trust who can trigger tool execution.
-
-#### Sub-Agent Delegation Hardening
-
-- Keep `sessions_spawn` denied unless you explicitly need delegated runs.
-- Keep `agents.list[].subagents.allowAgents` narrow, and only include agents with sandbox settings you trust.
-- When delegation must stay sandboxed, call `sessions_spawn` with `sandbox: "require"` (default is `inherit`).
-  - `sandbox: "require"` rejects the spawn unless the target child runtime is sandboxed.
-  - This prevents a less-restricted session from delegating work into an unsandboxed child by mistake.
-
-#### Web Interface Safety
-
-OpenClaw's web interface (Gateway Control UI + HTTP endpoints) is intended for **local use only**.
-
-- Recommended: keep the Gateway **loopback-only** (`127.0.0.1` / `::1`).
-  - Config: `gateway.bind="loopback"` (default).
-  - CLI: `openclaw gateway run --bind loopback`.
-- The retired `gateway.controlUi.dangerouslyDisableDeviceAuth` break-glass key is not a
-  current security option. Upgrade migration accepts it only from older config
-  versions and requires explicit self-pairing before normal enforcement resumes.
-  - OpenClaw keeps deployment flexibility by design and does not hard-forbid non-local setups.
-  - Non-local and other risky configurations are surfaced by `openclaw security audit` as dangerous findings.
-  - This operator-selected tradeoff is by design and not, by itself, a security vulnerability.
-- Canvas host note: network-visible canvas is **intentional** for trusted node scenarios (LAN/tailnet).
-  - Expected setup: non-loopback bind + Gateway auth (token/password/trusted-proxy) + firewall/tailnet controls.
-  - Expected routes: `/__openclaw__/canvas/`, `/__openclaw__/a2ui/`.
-  - This deployment model alone is not a security vulnerability.
-- Do **not** expose it to the public internet (no direct bind to `0.0.0.0`, no public reverse proxy). It is not hardened for public exposure.
-- If you need remote access, prefer an SSH tunnel or Tailscale serve/funnel (so the Gateway still binds to loopback), plus strong Gateway auth.
-- The Gateway HTTP surface includes the canvas host (`/__openclaw__/canvas/`, `/__openclaw__/a2ui/`). Treat canvas content as sensitive/untrusted and avoid exposing it beyond loopback unless you understand the risk.
-
-## Runtime Requirements
-
-### Node.js Version
-
-OpenClaw requires **Node.js 24.16+ or Node.js 26.1+**. Node 26 is recommended; Node 24 is the supported LTS line. These minimum versions include the upstream SQLite WAL-reset corruption fix and preserve embedded NUL characters in SQLite TEXT reads. Node 22, 23, and 25 are unsupported.
-
-Verify your Node.js version:
-
-```bash
-node --version  # Should be v24.16+ or v26.1+
-```
-
-### Docker Security
-
-When running OpenClaw in Docker:
-
-1. The official image runs as a non-root user (`node`) for reduced attack surface
-2. Use `--read-only` flag when possible for additional filesystem protection
-3. Limit container capabilities with `--cap-drop=ALL`
-
-Example secure Docker run:
-
-```bash
-docker run --read-only --cap-drop=ALL \
-  -v openclaw-data:/app/data \
-  openclaw/openclaw:latest
-```
-
-## Security Scanning
-
-OpenClaw uses several security and release-validation layers. No single scanner is treated as the boundary.
-
-### Secret Detection
-
-OpenClaw runs the in-repo `scripts/detect-private-keys.mts` scanner in CI (the same private-key marker set as the pre-commit-hooks `detect-private-key` hook, with no hook-repo fetches, package installs, or third-party hook execution in the scan's path) over every tracked regular file except colocated `*.test.ts` fixtures and the iOS Fastfile; pull requests run the base branch's copy of the scanner and fail if the base branch lacks it. The local `detect-private-key` pre-commit hook runs the same scanner over the text files pre-commit hands it. Secret-resolution behavior stays covered by the dedicated secrets test surface.
-
-Run the key scan locally:
-
-```bash
-node scripts/detect-private-keys.mts
-```
-
-### Static Analysis
-
-CI runs CodeQL across core TypeScript, GitHub Actions, Android, macOS, and high-risk runtime boundaries using `.github/workflows/codeql*.yml` and `.github/codeql/*.yml`.
-
-OpenGrep provides a high-precision Semgrep-compatible layer. PRs run a changed-path scan; maintainers can run a full repository scan when needed. The rulepack lives under `security/opengrep/`, with `.semgrepignore` as the shared exclusion file.
-
-Run the local OpenGrep wrapper after installing `opengrep`:
-
-```bash
-scripts/run-opengrep.sh --changed --sarif --error
-pnpm check:opengrep-rule-metadata
-```
-
-### E2E and Live Validation
-
-Security-relevant behavior is also covered by runtime validation, not only static scanning:
-
-- `pnpm test:e2e` for repo E2E coverage.
-- `pnpm test:live` for live provider/runtime coverage.
-- `pnpm test:docker:all` for Docker-packaged runtime scenarios.
-- Package acceptance and scheduled live/E2E workflows for release-path validation.
-
-These lanes exercise packaged installs, gateway/runtime behavior, live model/provider paths, Docker scenarios, and platform smoke tests. They complement scanners by proving the security-sensitive flows still behave correctly in real runtime environments.
+> 注:篇幅所限仅译核心章节,完整内容见原项目。

@@ -1,51 +1,38 @@
+> 🌐 本文档由 [openclaw/openclaw](https://github.com/openclaw/openclaw) 翻译,英文原版见原项目。
+
 ---
-summary: "File logs, console output, CLI tailing, and the Control UI Logs tab"
+summary: "文件日志、控制台输出、CLI 实时跟踪,以及 Control UI 的 Logs 标签页"
 read_when:
-  - You need a beginner-friendly overview of OpenClaw logging
-  - You want to configure log levels, formats, or redaction
-  - You are troubleshooting and need to find logs quickly
-title: "Logging"
+  - 你需要一份面向初学者的 OpenClaw 日志总览
+  - 你想配置日志级别、格式或脱敏(redaction)
+  - 你正在排查问题,需要快速找到日志
+title: "日志"
 ---
 
-OpenClaw has two main log surfaces:
+OpenClaw 有两个主要的日志呈现面:
 
-- **File logs** (JSON lines) written by the Gateway.
-- **Console output** in the terminal running the Gateway.
+- 由 Gateway 写入的**文件日志**(JSON lines)。
+- 运行 Gateway 的终端中的**控制台输出**。
 
-The Control UI **Logs** tab tails the gateway file log. This page explains where
-logs live, how to read them, and how to configure log levels and formats.
+Control UI 的 **Logs** 标签页会实时跟踪(tail)gateway 的文件日志。本页介绍日志存放在哪里、如何阅读,以及如何配置日志级别和格式。
 
-## Where logs live
+## 日志存放位置
 
-By default, the Gateway writes a rolling log file per day. The default profile
-keeps the historical path:
+默认情况下,Gateway 每天写入一个按天滚动的日志文件。默认 profile 沿用历史路径:
 
 `/tmp/openclaw/openclaw-YYYY-MM-DD.log`
 
-Named profiles use a profile-qualified filename in the same directory:
+命名 profile 会在同一目录下使用带 profile 限定的文件名:
 
 `/tmp/openclaw/openclaw-<profile>-YYYY-MM-DD.log`
 
-The filename profile segment is lowercase and limited to letters, numbers, and
-dashes. Simple lowercase names stay readable, so the `--dev` shorthand writes
-`openclaw-dev-YYYY-MM-DD.log`. Case, underscores, and literal dashes use a
-reversible dash escape so distinct profile names never share a log file.
-Oversized values set directly through the environment use a bounded hash suffix
-to stay within filesystem filename limits. An explicit `logging.file` overrides
-these defaults.
+文件名中的 profile 段为小写,且仅限字母、数字和连字符。简单的小写名称保持可读,因此 `--dev` 简写会写入 `openclaw-dev-YYYY-MM-DD.log`。大写字母、下划线和字面连字符会采用一种可逆的连字符转义,确保不同的 profile 名称永远不会共用同一个日志文件。通过环境变量直接设置的超长取值会附加一个有界哈希后缀,以满足文件系统对文件名长度的限制。显式设置 `logging.file` 可覆盖以上默认行为。
 
-The date uses the gateway host's local timezone. When `/tmp/openclaw` is unsafe
-or unavailable (and always on Windows), OpenClaw uses a user-scoped
-`openclaw-<uid>` directory under the OS temp dir instead. Dated log files are
-pruned after 24 hours.
+日期使用 gateway 宿主机的本地时区。当 `/tmp/openclaw` 不安全或不可用时(Windows 上始终如此),OpenClaw 会改用操作系统临时目录下按用户隔离的 `openclaw-<uid>` 目录。带日期的日志文件会在 24 小时后被清理。
 
-Each file rotates when the next write would exceed `logging.maxFileBytes`
-(default: 100 MB). OpenClaw keeps up to five numbered archives beside the
-active file, such as `openclaw-YYYY-MM-DD.1.log` or
-`openclaw-dev-YYYY-MM-DD.1.log`, and keeps writing to a fresh active log instead
-of suppressing diagnostics.
+当下一次写入会超出 `logging.maxFileBytes`(默认 100 MB)时,文件就会轮转。OpenClaw 会在当前活动文件旁保留最多五个带编号的归档,例如 `openclaw-YYYY-MM-DD.1.log` 或 `openclaw-dev-YYYY-MM-DD.1.log`,并继续写入新的活动日志,而不是压制诊断信息。
 
-You can override the path in `~/.openclaw/openclaw.json`:
+你可以在 `~/.openclaw/openclaw.json` 中覆盖该路径:
 
 ```json
 {
@@ -55,11 +42,11 @@ You can override the path in `~/.openclaw/openclaw.json`:
 }
 ```
 
-## How to read logs
+## 如何阅读日志
 
-### CLI: live tail (recommended)
+### CLI:实时跟踪(推荐)
 
-Tail the gateway log file via RPC:
+通过 RPC 实时跟踪 gateway 日志文件:
 
 ```bash
 openclaw logs --follow
@@ -67,117 +54,101 @@ openclaw --dev logs --follow
 openclaw --profile work logs --follow
 ```
 
-The root profile selector resolves the same profile-specific file used by the
-Gateway, including CLI fallback reads when local RPC is unavailable.
+根级 profile 选择器会解析出 Gateway 实际使用的同一个 profile 专属文件,包括在本地 RPC 不可用时 CLI 的回退读取。
 
-Options:
+选项:
 
-| Flag                | Default  | Behavior                                                                              |
+| 标志                | 默认值   | 行为                                                                                  |
 | ------------------- | -------- | ------------------------------------------------------------------------------------- |
-| `--follow`          | off      | Keep tailing; reconnects with backoff on disconnect                                   |
-| `--limit <n>`       | `200`    | Max lines per fetch                                                                   |
-| `--max-bytes <n>`   | `250000` | Max bytes to read per fetch                                                           |
-| `--interval <ms>`   | `1000`   | Poll interval while following                                                         |
-| `--json`            | off      | Line-delimited JSON (one event per line)                                              |
-| `--plain`           | off      | Force plain text in TTY sessions                                                      |
-| `--no-color`        | —        | Disable ANSI colors                                                                   |
-| `--utc`             | off      | Render timestamps in UTC (local time is default)                                      |
-| `--local-time`      | off      | Accepted compatibility spelling for the local-time default; no effect beyond it       |
-| `--url` / `--token` | —        | Standard Gateway RPC flags                                                            |
-| `--timeout <ms>`    | `30000`  | Gateway RPC timeout                                                                   |
-| `--expect-final`    | off      | Agent-backed RPC final-response wait flag (accepted here via the shared client layer) |
+| `--follow`          | 关闭     | 持续跟踪;断开后按退避策略重连                                                         |
+| `--limit <n>`       | `200`    | 每次获取的最大行数                                                                    |
+| `--max-bytes <n>`   | `250000` | 每次读取的最大字节数                                                                  |
+| `--interval <ms>`   | `1000`   | 跟随模式下的轮询间隔                                                                  |
+| `--json`            | 关闭     | 按行分隔的 JSON(每行一个事件)                                                       |
+| `--plain`           | 关闭     | 在 TTY 会话中强制使用纯文本                                                           |
+| `--no-color`        | —        | 禁用 ANSI 颜色                                                                        |
+| `--utc`             | 关闭     | 以 UTC 渲染时间戳(默认为本地时间)                                                   |
+| `--local-time`      | 关闭     | 本地时间默认值的兼容拼写;除此之外没有其他作用                                         |
+| `--url` / `--token` | —        | 标准 Gateway RPC 标志                                                                 |
+| `--timeout <ms>`    | `30000`  | Gateway RPC 超时时间                                                                  |
+| `--expect-final`    | 关闭     | Agent 后端 RPC 的最终响应等待标志(此处经共享客户端层接受)                           |
 
-Output modes:
+输出模式:
 
-- **TTY sessions**: pretty, colorized, structured log lines.
-- **Non-TTY sessions**: plain text.
+- **TTY 会话**:美观、带颜色、结构化的日志行。
+- **非 TTY 会话**:纯文本。
 
-When you pass an explicit `--url`, the CLI does not auto-apply config or
-environment credentials; include `--token` yourself, or the call fails with
-`gateway url override requires explicit credentials`.
+显式传入 `--url` 时,CLI 不会自动套用配置文件或环境变量中的凭据;你需要自行附带 `--token`,否则调用会以 `gateway url override requires explicit credentials` 报错。
 
-In JSON mode, the CLI emits `type`-tagged objects:
+在 JSON 模式下,CLI 会输出带 `type` 标签的对象:
 
-- `meta`: stream metadata (file, source, sourceKind, service, cursor, size)
-- `log`: parsed log entry
-- `notice`: truncation / rotation hints
-- `raw`: unparsed log line
-- `error`: gateway connection failures (written to stderr)
+- `meta`:流元数据(file、source、sourceKind、service、cursor、size)
+- `log`:解析后的日志条目
+- `notice`:截断/轮转提示
+- `raw`:未解析的原始日志行
+- `error`:gateway 连接失败(写入 stderr)
 
-If the implicit local loopback Gateway asks for pairing, closes during connect,
-or times out before `logs.tail` answers, `openclaw logs` falls back to the
-configured Gateway file log automatically. Explicit `--url` targets do not use
-this fallback. `openclaw logs --follow` is stricter: on Linux it uses the active
-user-systemd Gateway journal by PID when available, and otherwise retries the
-live Gateway with backoff instead of following a potentially stale side-by-side
-file.
+如果隐式的本地回环 Gateway 请求配对、在连接过程中关闭,或在 `logs.tail` 应答前超时,`openclaw logs` 会自动回退到所配置的 Gateway 文件日志。显式指定 `--url` 的目标不会使用这一回退。`openclaw logs --follow` 则更加严格:在 Linux 上,只要可用,它就会按 PID 读取活跃的 user-systemd Gateway journal;否则会以退避策略重试活跃的 Gateway,而不是去跟踪一个可能已经过期的旁路文件。
 
-If the Gateway is unreachable, the CLI prints a short hint to run:
+如果 Gateway 无法访问,CLI 会打印一条简短提示,让你运行:
 
 ```bash
 openclaw doctor
 ```
 
-### Control UI (web)
+### Control UI(网页)
 
-The Control UI's **Logs** tab tails the same file using `logs.tail`.
-See [Control UI](/web/control-ui) for how to open it.
+Control UI 的 **Logs** 标签页同样通过 `logs.tail` 实时跟踪这个文件。
+如何打开它参见 [Control UI](/web/control-ui)。
 
-### Channel-only logs
+### 仅频道日志
 
-To filter channel activity (WhatsApp/Telegram/etc), use:
+要过滤某个频道的活动(WhatsApp/Telegram 等),使用:
 
 ```bash
 openclaw channels logs --channel whatsapp
 ```
 
-`--channel` defaults to `all`; `--lines <n>` (default 200) and `--json` are also
-available.
+`--channel` 默认为 `all`;此外还可用 `--lines <n>`(默认 200)和 `--json`。
 
-## Log formats
+## 日志格式
 
-### File logs (JSONL)
+### 文件日志(JSONL)
 
-Each line in the log file is a JSON object. The CLI and Control UI parse these
-entries to render structured output (time, level, subsystem, message).
+日志文件中的每一行都是一个 JSON 对象。CLI 和 Control UI 会解析这些条目,渲染出结构化输出(时间、级别、子系统、消息)。
 
-File-log JSONL records also include machine-filterable top-level fields when
-available:
+在可用时,文件日志的 JSONL 记录还会包含便于机器过滤的顶层字段:
 
-- `hostname`: gateway host name.
-- `message`: flattened log message text for full-text search.
-- `agent_id`: active agent id when the log call carries agent context.
-- `session_id`: active session id/key when the log call carries session context.
-- `channel`: active channel when the log call carries channel context.
+- `hostname`:gateway 主机名。
+- `message`:扁平化的日志消息文本,用于全文检索。
+- `agent_id`:当日志调用携带 agent 上下文时的活跃 agent id。
+- `session_id`:当日志调用携带会话上下文时的活跃会话 id/键。
+- `channel`:当日志调用携带频道上下文时的活跃频道。
 
-OpenClaw preserves the original structured log arguments alongside these fields
-so existing parsers that read numbered tslog argument keys keep working.
+OpenClaw 会在这些字段之外保留原有的结构化日志参数,因此读取 tslog 编号参数键的既有解析器仍然可以正常工作。
 
-Talk, realtime voice, and managed-room activity emits bounded lifecycle log
-records through this same file-log pipeline. These records include event type,
-mode, transport, provider, and size/timing measurements when available, but omit
-transcript text, audio payloads, turn ids, call ids, and provider item ids.
+Talk、实时语音和托管房间(managed-room)活动会通过同一条文件日志管线输出有界的生命周期日志记录。这些记录在可用时包含事件类型、模式、传输方式、provider 以及大小/耗时度量,但会省略转写文本、音频载荷、turn id、通话 id 和 provider item id。
 
-### Console output
+### 控制台输出
 
-Console logs are **TTY-aware** and formatted for readability:
+控制台日志**能感知 TTY**,并以便读为目标进行格式化:
 
-- Subsystem prefixes (e.g. `gateway/channels/whatsapp`)
-- Level coloring (info/warn/error)
-- Optional compact or JSON mode
+- 子系统前缀(例如 `gateway/channels/whatsapp`)
+- 级别着色(info/warn/error)
+- 可选的紧凑模式或 JSON 模式
 
-Console formatting is controlled by `logging.consoleStyle`.
+控制台格式由 `logging.consoleStyle` 控制。
 
-### Gateway WebSocket logs
+### Gateway WebSocket 日志
 
-`openclaw gateway` also has WebSocket protocol logging for RPC traffic:
+`openclaw gateway` 还提供针对 RPC 流量的 WebSocket 协议日志:
 
-- normal mode: only interesting results (errors, parse errors, slow calls)
-- `--verbose`: all request/response traffic
-- `--ws-log auto|compact|full`: pick the verbose rendering style
-- `--compact`: alias for `--ws-log compact`
+- 普通模式:只记录值得关注的输出(错误、解析错误、慢调用)
+- `--verbose`:所有请求/响应流量
+- `--ws-log auto|compact|full`:选择 verbose 模式下的渲染风格
+- `--compact`:`--ws-log compact` 的别名
 
-Examples:
+示例:
 
 ```bash
 openclaw gateway
@@ -185,9 +156,9 @@ openclaw gateway --verbose --ws-log compact
 openclaw gateway --verbose --ws-log full
 ```
 
-## Configuring logging
+## 配置日志
 
-All logging configuration lives under `logging` in `~/.openclaw/openclaw.json`.
+所有日志配置都位于 `~/.openclaw/openclaw.json` 的 `logging` 键下。
 
 ```json
 {
@@ -201,256 +172,48 @@ All logging configuration lives under `logging` in `~/.openclaw/openclaw.json`.
 }
 ```
 
-### Log levels
+### 日志级别
 
-Levels: `silent`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`.
+可用级别:`silent`、`fatal`、`error`、`warn`、`info`、`debug`、`trace`。
 
-- `logging.level`: **file logs** (JSONL) level (default: `info`).
-- `logging.consoleLevel`: **console** verbosity level.
+- `logging.level`:**文件日志**(JSONL)级别(默认:`info`)。
+- `logging.consoleLevel`:**控制台**详细程度级别。
 
-You can override both via the **`OPENCLAW_LOG_LEVEL`** environment variable (e.g. `OPENCLAW_LOG_LEVEL=debug`). The env var takes precedence over the config file, so you can raise verbosity for a single run without editing `openclaw.json`. You can also pass the global CLI option **`--log-level <level>`** (for example, `openclaw --log-level debug gateway run`), which overrides the environment variable for that command.
+两者都可以通过 **`OPENCLAW_LOG_LEVEL`** 环境变量覆盖(例如 `OPENCLAW_LOG_LEVEL=debug`)。环境变量优先于配置文件,因此无需修改 `openclaw.json` 就能为单次运行提高详细程度。你也可以传入全局 CLI 选项 **`--log-level <level>`**(例如 `openclaw --log-level debug gateway run`),它会在这条命令中覆盖环境变量。
 
-`--verbose` only affects console output and WS log verbosity; it does not change
-file log levels.
+`--verbose` 只影响控制台输出和 WS 日志的详细程度,不会改变文件日志级别。
 
-### Targeted model transport diagnostics
+### 针对模型传输的定向诊断
 
-When debugging provider calls, use targeted environment flags instead of raising
-all logs to `debug`:
+调试 provider 调用时,请使用定向的环境变量开关,而不是把所有日志都提升到 `debug`:
 
 ```bash
 OPENCLAW_DEBUG_MODEL_TRANSPORT=1 openclaw gateway
 OPENCLAW_DEBUG_MODEL_PAYLOAD=tools OPENCLAW_DEBUG_SSE=events openclaw gateway
 ```
 
-Available flags:
+可用的开关:
 
-- `OPENCLAW_DEBUG_MODEL_TRANSPORT=1`: emit request start, fetch response, SDK
-  headers, first streaming event, stream completion, and transport errors at
-  `info` level.
-- `OPENCLAW_DEBUG_MODEL_PAYLOAD=summary`: include a bounded request payload
-  summary in model request logs.
-- `OPENCLAW_DEBUG_MODEL_PAYLOAD=tools`: include all model-facing tool names in
-  the payload summary.
-- `OPENCLAW_DEBUG_MODEL_PAYLOAD=full-redacted`: include a redacted, capped JSON
-  payload snapshot. Use only while debugging; secrets are redacted but prompts
-  and message text may still be present.
-- `OPENCLAW_DEBUG_SSE=events`: emit first-event and stream-completion timing.
-- `OPENCLAW_DEBUG_SSE=peek`: also emit the first five redacted SSE event
-  payloads, capped per event.
-- `OPENCLAW_DEBUG_CODE_MODE=1`: emit code-mode model-surface diagnostics,
-  including bounded activation facts, the final visible surface, and names of
-  provider-native tools filtered because code mode owns the tool surface.
+- `OPENCLAW_DEBUG_MODEL_TRANSPORT=1`:以 `info` 级别输出请求开始、fetch 响应、SDK 请求头、首个流式事件、流完成以及传输错误。
+- `OPENCLAW_DEBUG_MODEL_PAYLOAD=summary`:在模型请求日志中附带一份有界的请求载荷摘要。
+- `OPENCLAW_DEBUG_MODEL_PAYLOAD=tools`:在载荷摘要中包含所有面向模型的工具名称。
+- `OPENCLAW_DEBUG_MODEL_PAYLOAD=full-redacted`:附带一份经过脱敏且限长的 JSON 载荷快照。仅调试时使用;密钥会被脱敏,但提示词和消息文本可能仍然出现。
+- `OPENCLAW_DEBUG_SSE=events`:输出首个事件和流完成的耗时信息。
+- `OPENCLAW_DEBUG_SSE=peek`:额外输出前五个脱敏后的 SSE 事件载荷,并按事件限长。
+- `OPENCLAW_DEBUG_CODE_MODE=1`:输出 code mode 的模型表面诊断信息,包括有界的激活事实、最终可见表面,以及因 code mode 接管工具表面而被过滤掉的 provider 原生工具名称。
 
-These flags log through normal OpenClaw logging, so `openclaw logs --follow`
-and the Control UI Logs tab show them. For backward compatibility,
-`OPENCLAW_DEBUG_CODE_MODE` also promotes general model-transport diagnostics to
-`info`; dedicated code-mode diagnostics are emitted only when that flag is
-enabled.
+这些开关通过 OpenClaw 的常规日志机制输出,因此 `openclaw logs --follow` 和 Control UI 的 Logs 标签页都能看到它们。出于向后兼容考虑,`OPENCLAW_DEBUG_CODE_MODE` 还会把通用模型传输诊断提升到 `info` 级别;专属的 code mode 诊断仅在该开关启用时输出。
 
-`[model-fetch]` start and response metadata (provider, API, model, status,
-latency, and request fields such as method, URL, timeout, proxy, and policy)
-is always emitted at `info` level regardless of
-`OPENCLAW_DEBUG_MODEL_TRANSPORT`, so basic model transport hygiene is visible
-without debug flags.
+`[model-fetch]` 的开始与响应元数据(provider、API、模型、状态、延迟,以及方法、URL、超时、代理、策略等请求字段)始终以 `info` 级别输出,不受 `OPENCLAW_DEBUG_MODEL_TRANSPORT` 影响,因此不开调试开关也能看到基本的模型传输健康状况。
 
-`[anthropic] replayed thinking dropped: N block(s)` is a warning when Anthropic
-reports dropping invalidated thinking from replay. It includes the mismatch
-reasons and up to five affected message paths, not the thinking content. No
-debug flag is required.
+`[anthropic] replayed thinking dropped: N block(s)` 是一条警告,表示 Anthropic 报告在重放时丢弃了已失效的 thinking 内容。它包含不匹配的原因和最多五条受影响的消息路径,不包含 thinking 内容本身,无需任何调试开关。
 
-`[anthropic] server-side context edit: cleared N tool results (M input tokens)`
-is an info-level line when Anthropic reports applying server-side tool-result
-clearing. It contains counts only, without tool arguments or result content, and
-requires no debug flag. See [Session pruning](/concepts/session-pruning#direct-anthropic-api-key-requests)
-for the routes and thresholds that enable clearing.
+`[anthropic] server-side context edit: cleared N tool results (M input tokens)` 是一条 info 级别日志,表示 Anthropic 报告执行了服务端的工具结果清理。它只包含计数,不含工具参数或结果内容,同样无需调试开关。启用清理的路由和阈值参见 [Session pruning](/concepts/session-pruning#direct-anthropic-api-key-requests)。
 
-### Trace correlation
+### 追踪关联(trace correlation)
 
-File logs are JSONL. When a log call carries a valid diagnostic trace context,
-OpenClaw writes the trace fields as top-level JSON keys (`traceId`, `spanId`,
-`parentSpanId`, `traceFlags`) so external log processors can correlate the line
-with OTEL spans and provider `traceparent` propagation.
+文件日志是 JSONL 格式。当日志调用携带有效的诊断追踪上下文时,OpenClaw 会把追踪字段写成顶层 JSON 键(`traceId`、`spanId`、`parentSpanId`、`traceFlags`),以便外部日志处理系统能把这一行与 OTEL span 以及 provider 的 `traceparent` 传播关联起来。
 
-Gateway HTTP requests and Gateway WebSocket frames establish an internal request
-trace scope. Logs and diagnostic events emitted inside that async scope inherit
-the request trace when they do not pass an explicit trace context. Agent run and
-model-call traces become children of the active request trace, so local logs,
-diagnostic snapshots, OTEL spans, and trusted provider `traceparent` headers can
-be joined by `traceId` without logging raw request or model content.
+Gateway 的 HTTP 请求和 Gateway WebSocket 帧会建立一个内部请求追踪作用域。在该异步作用域内输出的日志和诊断事件,如果没有显式传入追踪上下文,就会继承该请求的追踪。Agent 运行和模型调用的追踪会成为当前请求追踪的子级,因此本地日志、诊断快照、OTEL span 和可信 provider 的 `traceparent` 头可以凭借 `traceId` 关联起来,而不必记录原始请求或模型内容。
 
-Talk lifecycle log records also flow to diagnostics-otel log export when
-OpenTelemetry log export is enabled, using the same bounded attributes as file
-logs. Configure `diagnostics.otel.logsExporter` to choose OTLP, stdout JSONL, or
-both sinks.
-
-### Slow agent database opens
-
-The `slow OpenClaw agent database open` warning includes `phaseDurationsMs` when
-a persistent database open takes at least one second:
-
-| Phase           | Work included                                                                                           |
-| --------------- | ------------------------------------------------------------------------------------------------------- |
-| `open`          | Permissions, handle eviction, and opening the connection.                                               |
-| `validation`    | Integrity, version, and owner checks, including Worker waiting and revalidation during async admission. |
-| `configuration` | Connection and WAL settings.                                                                            |
-| `schema`        | Schema initialization or convergence when needed.                                                       |
-| `registration`  | Post-validation eviction and permissions, cleanup setup, and shared-state registration.                 |
-
-The integer millisecond durations partition `elapsedMs`, measured with a
-monotonic clock after lease acquisition. Live cache hits remain quiet. These
-are elapsed durations, including asynchronous waits, rather than CPU time or
-proof that the main event loop was blocked for the whole interval.
-
-The structured warning also includes `pid`, Node's `threadId`, and `isMainThread`
-for the opener emitting it. Inspect each `openclaw logs --json` event's original
-`raw` record; ordinary console text omits structured metadata.
-An opener on the main thread may have awaited an integrity Worker, so these
-fields do not identify the thread performing every phase. `admissionMode` records
-the actual `sync` or `async` open driver. Async admission offloads its initial
-integrity check; resumed validation and repair can still run on the opener.
-Correlate the process ID with the log timestamp and current process; PIDs can be
-reused after exit.
-
-### Slow reply preparation
-
-When a reply spends a long time preparing, inspect the normal Gateway logs:
-
-```bash
-openclaw logs --follow --plain | rg 'timings|agent turn milestone|liveness warning'
-```
-
-Reply resolver, dispatch, and agent-turn preparation milestones include stage
-durations, elapsed time, and available run/session identifiers. Without profiler
-flags, they warn at 10 seconds elapsed or 5 seconds in one preparation stage. Codex preparation also
-logs each completed slow stage immediately, including failures, and emits a
-`native-turn-handoff` summary before submitting the native turn. Timing records
-contain stage names and identifiers, not prompts or tool arguments.
-
-Embedded-run startup, prep, core-plugin-tool and auth stage summaries include
-`pid`, `threadId` and `isMainThread` in the message to distinguish emitters sharing
-a log file. These identify the summary emitter, not where every timed operation
-ran. Elapsed stage time can include asynchronous waits and is not CPU time.
-
-Use the first `turn_accepted`, `model_call_started`, `tool_execution_started`, and
-`assistant_output_started` milestones to separate startup from later activity.
-Delayed first assistant/tool activity is logged once at `info` by default,
-because provider and tool latency is not itself a preparation warning.
-These are runtime observations: native turn acceptance does not prove that a
-provider request has started. Whole-turn summaries remain profiler-only because
-their totals include model and tool time. Compare the individual preparation
-stages before attributing a long turn to Gateway startup. A simultaneous
-`liveness warning` with high event-loop delay
-can explain delays across several sessions.
-
-For shorter delays, [profiler flags](/diagnostics/flags#profiler-flags) lower the
-warning thresholds. They are not required to diagnose a multi-second startup
-stall.
-
-### Model call size and timing
-
-Model-call diagnostics record bounded request/response measurements without
-capturing raw prompt or response content:
-
-- `requestPayloadBytes`: UTF-8 byte size of the final model request payload
-- `responseStreamBytes`: UTF-8 byte size of streamed model response chunk
-  payloads. High-frequency text, thinking, and tool-call delta events count
-  only the incremental `delta` bytes instead of full `partial` snapshots.
-- `timeToFirstByteMs`: elapsed time before the first streamed response event
-- `durationMs`: total model-call duration
-
-These fields are available to diagnostic snapshots, model-call plugin hooks, and
-OTEL model-call spans/metrics when diagnostics export is enabled.
-
-### Console styles
-
-`logging.consoleStyle` accepts `pretty` or `json`:
-
-- `pretty`: human-friendly, colored, with timestamps.
-- `json`: JSON per line (for log processors).
-
-A third rendering style, `compact` (tighter output, best for long sessions), is
-applied automatically when stdout is not a TTY. It is no longer a settable
-config value; `openclaw doctor --fix` maps a stored `consoleStyle: "compact"`
-to `"pretty"`.
-
-### Redaction
-
-OpenClaw can redact sensitive tokens before they hit console output, file logs,
-OTLP log records, persisted session transcript text, or Control UI tool
-event payloads (tool start args, partial/final result payloads, derived
-exec output, and patch summaries):
-
-- Sensitive-value redaction is always enabled.
-- `logging.redactPatterns`: list of regex strings that replaces the default set for log/transcript output. For Control UI tool payloads, custom patterns apply on top of the built-in defaults, so adding a pattern never weakens redaction of values already caught by the defaults.
-
-File logs use JSONL; active session transcripts live in the
-[per-agent SQLite database](/reference/database-schemas#database-layout). Matching
-secret values are masked before the line or message is persisted. Redaction is best-effort:
-it applies to text-bearing message content and log strings, not every
-identifier or binary payload field.
-
-Transcript redaction does not replace the live arguments used to execute tools.
-Canonical assistant tool-call IDs and matching tool-result IDs remain unchanged
-so stored history can correlate with live tool events. This exemption applies
-only to protocol metadata; the same values in arguments, results, or nested
-payloads still pass through redaction.
-
-Model-visible tool-result text uses narrower assignment matching so source code
-remains intact. Registered secrets and explicit credential forms, including
-structured fields, authorization headers, URL credentials, and known token
-formats, remain masked. Direct reads of `.env` files apply
-broader assignment masking before their content becomes a tool result. Other
-config and source reads preserve opaque values; register actual secrets instead
-of relying on key-name matching. Bare source assignments such as
-`token = timeObserverToken` remain unchanged.
-
-The built-in defaults cover common API credentials and payment-credential field
-names such as card number, CVC/CVV, shared payment token, and payment credential
-when they appear as JSON fields, URL parameters, CLI flags, or assignments.
-
-OpenClaw also redacts safety-boundary payloads shown to UI clients, support
-bundles, diagnostics observers, approval prompts, or agent tools. Custom
-`logging.redactPatterns` can add project-specific patterns on those surfaces.
-
-## Diagnostics and OpenTelemetry
-
-Diagnostics are structured, machine-readable events for model runs and
-message-flow telemetry (webhooks, queueing, session state). They do **not**
-replace logs — they feed metrics, traces, and exporters. Events are emitted
-in-process by default (set `diagnostics.enabled: false` to turn them off);
-exporting them is separate.
-
-When a session directive rejects a turn before model execution, its existing
-`message.processed` event reports `outcome: "skipped"` with a closed `reason`
-code and the usual channel, message, and session correlation. The rejection
-does not add the user's message, model token, or error reply to that event.
-
-Two adjacent surfaces:
-
-- **OpenTelemetry export** — send metrics, traces, and logs over OTLP/HTTP to
-  any OpenTelemetry-compatible collector or backend (Datadog, Grafana,
-  Honeycomb, New Relic, Tempo, etc.). Full configuration, signal catalog,
-  metric/span names, env vars, and privacy model live on a dedicated page:
-  [OpenTelemetry export](/gateway/opentelemetry).
-- **Diagnostics flags** — targeted debug-log flags that route extra logs to
-  `logging.file` without raising `logging.level`. Flags are case-insensitive
-  and support wildcards (`telegram.*`, `*`). Configure under `diagnostics.flags`
-  or via the `OPENCLAW_DIAGNOSTICS=...` env override. Full guide:
-  [Diagnostics flags](/diagnostics/flags).
-
-For OTLP export to a collector, see [OpenTelemetry export](/gateway/opentelemetry).
-
-## Troubleshooting tips
-
-- **Gateway not reachable?** Run `openclaw doctor` first.
-- **Logs empty?** Check that the Gateway is running and writing to the file path
-  in `logging.file`.
-- **Need more detail?** Set `logging.level` to `debug` or `trace` and retry.
-
-## Related
-
-- [OpenTelemetry export](/gateway/opentelemetry) — OTLP/HTTP export, metric/span catalog, privacy model
-- [Diagnostics flags](/diagnostics/flags) — targeted debug-log flags
-- [Gateway logging internals](/gateway/logging) — WS log styles, subsystem prefixes, and console capture
-- [Configuration reference](/gateway/config-observability#diagnostics) — full `diagnostics.*` field reference
+> 注:篇幅所限仅译核心章节,完整内容见原项目。

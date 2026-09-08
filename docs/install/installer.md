@@ -1,50 +1,51 @@
+> 🌐 本文档由 [openclaw/openclaw](https://github.com/openclaw/openclaw) 翻译,英文原版见原项目。
+
 ---
-summary: "How the installer scripts work (install.sh, install-cli.sh, install.ps1), flags, and automation"
+summary: "安装器脚本（install.sh、install-cli.sh、install.ps1）的工作原理、参数与自动化方式"
 read_when:
-  - You want to understand `openclaw.ai/install.sh`
-  - You want to automate installs (CI / headless)
-  - You want to install from a GitHub checkout
-title: "Installer internals"
+  - 想了解 `openclaw.ai/install.sh` 的工作机制
+  - 想自动化安装（CI / 无头环境）
+  - 想从 GitHub checkout 安装
+title: "安装器内部机制"
 ---
 
-OpenClaw ships three installer scripts, served from `openclaw.ai`.
+OpenClaw 提供三个安装脚本，均由 `openclaw.ai` 分发。
 
-| Script                             | Platform             | What it does                                                                                   |
+| 脚本                               | 平台                 | 作用                                                                                           |
 | ---------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------- |
-| [`install.sh`](#installsh)         | macOS / Linux / WSL  | Installs Node if needed, installs OpenClaw via npm (default) or git, can run onboarding.       |
-| [`install-cli.sh`](#install-clish) | macOS / Linux / WSL  | Installs Node + OpenClaw into a local prefix (`~/.openclaw`) via npm or git. No root required. |
-| [`install.ps1`](#installps1)       | Windows (PowerShell) | Installs Node if needed, installs OpenClaw via npm (default) or git, can run onboarding.       |
+| [`install.sh`](#installsh)         | macOS / Linux / WSL  | 按需安装 Node，通过 npm（默认）或 git 安装 OpenClaw，可执行 onboarding 引导。                  |
+| [`install-cli.sh`](#install-clish) | macOS / Linux / WSL  | 将 Node + OpenClaw 安装到本地前缀（`~/.openclaw`），通过 npm 或 git 安装，无需 root 权限。     |
+| [`install.ps1`](#installps1)       | Windows（PowerShell） | 按需安装 Node，通过 npm（默认）或 git 安装 OpenClaw，可执行 onboarding 引导。                  |
 
-All three support Node **24.16+ or 26.1+** with a WAL-reset-safe linked SQLite library. When Node is missing, `install.sh` provisions Node 26 through Homebrew on macOS and the supported Node 24 LTS line through NodeSource on Linux. When a supported RPM-owned Node links unsafe SQLite, `install.sh` preserves the distro package and provisions a user-space Node runtime through `install-cli.sh`. The rootless `install-cli.sh` downloads Node 24.19.0; Linux ARMv7 is unsupported. On Windows, winget/Chocolatey/Scoop install the supported Node LTS line, and the portable fallback downloads Node 26.
+三个脚本均支持 Node **24.16+ 或 26.1+**，并要求其链接的 SQLite 库具备 WAL 重置安全性。缺少 Node 时，`install.sh` 在 macOS 上通过 Homebrew 安装 Node 26，在 Linux 上通过 NodeSource 安装受支持的 Node 24 LTS 版本线。当受支持的、由 RPM 管理的 Node 链接了不安全的 SQLite 时，`install.sh` 会保留发行版软件包，并通过 `install-cli.sh` 提供用户空间的 Node 运行时。免 root 的 `install-cli.sh` 会下载 Node 24.19.0；不支持 Linux ARMv7。在 Windows 上，winget/Chocolatey/Scoop 会安装受支持的 Node LTS 版本线，便携版回退方案则下载 Node 26。
 
-Before changing packages, every installer probes the exact npm executable it will use. npm 11.15 and earlier installs normally; npm 11.16 and later, including npm 12, receives `--allow-scripts` for only the npm-resolved OpenClaw candidate identity. An unreadable npm version stops before package mutation. A remaining `.openclaw-lifecycle-pending` marker or legacy `dist/openclaw-install-guard` makes the install fail instead of reporting a lifecycle-skipped package as successful.
+在改动软件包之前，每个安装器都会探测自己将要使用的那个确切的 npm 可执行文件。npm 11.15 及更早版本正常安装；npm 11.16 及更高版本（包括 npm 12）只会对经 npm 解析出的 OpenClaw 候选标识附加 `--allow-scripts`。若 npm 版本无法读取，则会在改动软件包之前停止。若残留 `.openclaw-lifecycle-pending` 标记或旧版 `dist/openclaw-install-guard`，安装将直接失败，而不会把跳过了生命周期脚本的软件包报告为安装成功。
 
-On npm 12, local `.tgz` and `.tar.gz` installs and updates need a comma-free archive filename and parent path. npm uses commas to separate lifecycle approvals, so move the archive to a comma-free path before retrying. Relative tarball arguments are still supported; the installer resolves their full path for approval.
+在 npm 12 上，从本地 `.tgz` 和 `.tar.gz` 归档进行安装或更新时，归档文件名及其父路径都不能包含逗号。npm 用逗号分隔生命周期脚本批准项，因此重试前请先把归档移到不含逗号的路径。仍然支持相对路径的 tarball 参数；安装器会解析出完整路径用于审批。
 
-Install-method switches verify the replacement before retiring the current owner. Source wrappers use a same-directory atomic replacement; when an npm shim shares that path, the installer moves only an identity-matched source wrapper aside and restores it if npm installation, lifecycle checks, or candidate verification fails. On upgrades, `install.sh` and `install.ps1` run `openclaw doctor --fix`; repair or final verification failure exits nonzero, and the success banner appears only after those steps complete.
+切换安装方式时，会先验证替代方案，再停用当前的持有者。源码 wrapper 采用同目录原子替换；当 npm shim 与该路径冲突时，安装器只会把标识匹配的源码 wrapper 移开，并在 npm 安装、生命周期检查或候选验证失败时将其恢复。升级时，`install.sh` 和 `install.ps1` 会运行 `openclaw doctor --fix`；修复或最终验证失败将以非零退出码结束，成功横幅只有在这些步骤全部完成后才会显示。
 
-## Source build toolchain
+## 源码构建工具链
 
-For source installs, the installer selects pnpm after choosing the checkout ref.
-It uses Corepack to create pnpm shims in an installer-owned temporary directory,
-then runs them from the checkout so Corepack reads that target's package-manager
-pin. The same directory leads `PATH` for nested install and build commands;
-workspace and lockfile environment overrides are bound to the target checkout
-for those children only. An older ambient `pnpm --version` is not a safe
-selection probe: its version-switching path can modify the target lockfile.
+对于源码安装，安装器会在选定 checkout ref 之后选择 pnpm。
+它使用 Corepack 在安装器自有的临时目录中创建 pnpm shim，
+然后从 checkout 目录运行这些 shim，使 Corepack 读取该目标所固定的包管理器版本。
+嵌套的安装与构建命令会让该目录排在 `PATH` 最前；
+workspace 与 lockfile 相关的环境变量覆盖仅在那些子进程中绑定到目标 checkout。
+环境中既有的旧版 `pnpm --version` 不是安全的选择探测手段：
+其版本切换路径可能修改目标 lockfile。
 
-If Corepack is missing or cannot provision the pinned version, the installers
-use their selected npm executable to install that exact pnpm version into a
-temporary prefix, retaining npm's version-specific lifecycle approval. They use
-the executable from that prefix directly, including for nested commands. This
-bootstrap neither activates global Corepack shims nor changes user pnpm config;
-temporary shims and packages are cleaned up after the installer exits.
+如果缺少 Corepack 或无法提供所固定的版本，安装器会用选定的 npm 可执行文件
+把该确切的 pnpm 版本安装到临时前缀中，并保留 npm 针对该版本的生命周期脚本批准。
+随后直接使用该前缀中的可执行文件，包括嵌套命令。
+这一引导过程既不会激活全局 Corepack shim，也不会更改用户的 pnpm 配置；
+安装器退出后会清理临时 shim 和软件包。
 
-This does not install or replace the shell's global pnpm command. Before later
-manual builds, follow [From source](/install#from-source) to select the
-checkout-pinned toolchain rather than reusing an older ambient launcher.
+此过程不会安装或替换 shell 的全局 pnpm 命令。之后手动构建前，请按照
+[从源码安装](/install#from-source)选择 checkout 所固定的工具链，
+而不要复用环境中较旧的启动器。
 
-## Quick commands
+## 快捷命令
 
 <Tabs>
   <Tab title="install.sh">
@@ -80,7 +81,7 @@ checkout-pinned toolchain rather than reusing an older ambient launcher.
 </Tabs>
 
 <Note>
-If install succeeds but `openclaw` is not found in a new terminal, see [Node.js troubleshooting](/install/node#troubleshooting).
+如果安装成功但新终端中找不到 `openclaw`，请参阅 [Node.js 故障排查](/install/node#troubleshooting)。
 </Note>
 
 ---
@@ -90,70 +91,68 @@ If install succeeds but `openclaw` is not found in a new terminal, see [Node.js 
 ## install.sh
 
 <Tip>
-Recommended for most interactive installs on macOS/Linux/WSL.
+推荐大多数 macOS/Linux/WSL 交互式安装使用。
 </Tip>
 
-### Flow (install.sh)
+### 安装流程（install.sh）
 
 <Steps>
-  <Step title="Detect OS">
-    Supports macOS and Linux (including WSL).
+  <Step title="检测操作系统">
+    支持 macOS 和 Linux（包括 WSL）。
   </Step>
-  <Step title="Ensure a supported Node.js runtime">
-    Checks the Node version and linked SQLite library, then installs Node if needed (Node 26 through Homebrew `node` on macOS; Node 24 LTS through NodeSource setup scripts on Linux apt/dnf/yum). On RPM-based Linux, a supported distro Node that links unsafe SQLite remains installed while OpenClaw receives a user-space Node runtime. On macOS, Homebrew is installed only when the installer needs it for Node or Git. Node 24.16+ and Node 26.1+ are supported; Node 22, 23, and 25 are unsupported.
-    On Alpine/musl Linux, the installer uses apk packages instead of NodeSource and verifies the actual linked SQLite version. Current stable Alpine package streams can provide a new-enough Node with vulnerable system SQLite; when that happens, use an official `node:26-alpine` container or a glibc-based host instead.
+  <Step title="确保有受支持的 Node.js 运行时">
+    检查 Node 版本及其链接的 SQLite 库，然后在需要时安装 Node（macOS 上通过 Homebrew 的 `node` 安装 Node 26；Linux 的 apt/dnf/yum 上通过 NodeSource 安装脚本安装 Node 24 LTS）。在基于 RPM 的 Linux 上，链接了不安全 SQLite 的受支持发行版 Node 会继续保留，而 OpenClaw 改用用户空间的 Node 运行时。在 macOS 上，只有当安装器需要用 Homebrew 装 Node 或 Git 时才会安装 Homebrew。支持 Node 24.16+ 和 Node 26.1+；不支持 Node 22、23 和 25。
+    在 Alpine/musl Linux 上，安装器改用 apk 软件包而非 NodeSource，并验证实际链接的 SQLite 版本。当前稳定版 Alpine 软件包源可能提供 Node 版本够新但系统 SQLite 存在漏洞的组合；遇到这种情况时，请改用官方 `node:26-alpine` 容器或基于 glibc 的主机。
   </Step>
-  <Step title="Ensure Git">
-    Installs Git if missing using the detected package manager, including Homebrew on macOS and apk on Alpine.
+  <Step title="确保有 Git">
+    若缺少 Git，则使用检测到的包管理器安装，包括 macOS 上的 Homebrew 和 Alpine 上的 apk。
   </Step>
-  <Step title="Install OpenClaw">
-    - `npm` method (default): global npm install
-    - `git` method: clone/update repo, install deps with pnpm, build, then install wrapper at `~/.local/bin/openclaw`
+  <Step title="安装 OpenClaw">
+    - `npm` 方式（默认）：npm 全局安装
+    - `git` 方式：克隆/更新仓库，用 pnpm 安装依赖并构建，然后在 `~/.local/bin/openclaw` 安装 wrapper
 
   </Step>
-  <Step title="Post-install tasks">
-    - Resolves the just-installed `openclaw` binary for follow-up commands
-    - npm-prefix and daemon-status probes use a default five-second timeout; completed probes return without waiting for that deadline.
-    - For an unconfigured install, starts onboarding before doctor or gateway probes. With `--no-onboard` or no TTY, it prints the command to finish setup later.
-    - For a configured install, refreshes and restarts a loaded gateway service best-effort and runs repair Doctor. Upgrade repair failures are fatal; plugin update failures remain warnings.
-    - When `--verify` runs, it checks the installed version and checks gateway health only after configuration exists.
+  <Step title="安装后任务">
+    - 解析刚安装的 `openclaw` 可执行文件，供后续命令使用
+    - npm 前缀与守护进程状态探测默认使用 5 秒超时；已完成的探测会立即返回，不会等满该时限。
+    - 对于未配置的安装，会在 doctor 或 gateway 探测之前先启动 onboarding。使用 `--no-onboard` 或无 TTY 时，会打印稍后完成配置所需的命令。
+    - 对于已配置的安装，会尽力刷新并重启已加载的 gateway 服务，并运行修复版 Doctor。升级修复失败属于致命错误；插件更新失败仅作为警告。
+    - 使用 `--verify` 时，会检查已安装版本，并且只在已有配置的情况下检查 gateway 健康状态。
 
   </Step>
 </Steps>
 
-### Source checkout detection
+### 源码 checkout 检测
 
-If run inside an OpenClaw checkout (`package.json` + `pnpm-workspace.yaml`), the script offers:
+如果在 OpenClaw checkout 目录（含 `package.json` + `pnpm-workspace.yaml`）内运行，脚本会提供以下选项：
 
-- use checkout (`git`), or
-- use global install (`npm`)
+- 使用该 checkout（`git`），或
+- 使用全局安装（`npm`）
 
-If no TTY is available and no install method is set, it defaults to `npm` and warns.
+如果没有可用 TTY 且未设置安装方式，则默认采用 `npm` 并给出警告。
 
-The script exits with code `2` for invalid method selection or invalid `--install-method` values.
+方式选择无效或 `--install-method` 取值非法时，脚本以退出码 `2` 退出。
 
-With `--install-method git`, `install.sh` and `install-cli.sh` accept a full
-40-character commit SHA through `--version`. The installer uses the existing
-object or fetches that exact commit from `origin`, checks it out detached, and
-installs dependencies with a frozen lockfile. A branch with the same name cannot
-replace the requested commit. `--no-git-update` skips branch rebasing; it does not
-prevent fetching a missing requested commit. The install fails if the requested
-object is unavailable or cannot resolve to a commit.
+使用 `--install-method git` 时，`install.sh` 和 `install-cli.sh` 可通过 `--version`
+接受完整的 40 位 commit SHA。安装器会使用已存在的对象，或从 `origin`
+拉取该确切的 commit，以 detached HEAD 方式检出，并以冻结的 lockfile 安装依赖。
+同名分支无法顶替所请求的 commit。`--no-git-update` 只跳过分支 rebase，
+并不会阻止拉取缺失的请求 commit。如果请求的对象不可用或无法解析为 commit，安装将失败。
 
-### Examples (install.sh)
+### 示例（install.sh）
 
 <Tabs>
-  <Tab title="Default">
+  <Tab title="默认">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
     ```
   </Tab>
-  <Tab title="Skip onboarding">
+  <Tab title="跳过 onboarding">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-onboard
     ```
   </Tab>
-  <Tab title="Git install">
+  <Tab title="Git 安装">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --install-method git
     ```
@@ -163,12 +162,12 @@ object is unavailable or cannot resolve to a commit.
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --install-method git --version main
     ```
   </Tab>
-  <Tab title="Dry run">
+  <Tab title="试运行">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --dry-run
     ```
   </Tab>
-  <Tab title="Verify after install">
+  <Tab title="安装后验证">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-onboard --verify
     ```
@@ -176,43 +175,43 @@ object is unavailable or cannot resolve to a commit.
 </Tabs>
 
 <AccordionGroup>
-  <Accordion title="Flags reference">
+  <Accordion title="参数参考">
 
-| Flag                                    | Description                                                             |
+| 参数                                    | 说明                                                                    |
 | --------------------------------------- | ----------------------------------------------------------------------- |
-| `--install-method \| --method npm\|git` | Choose install method (default: `npm`)                                  |
-| `--npm`                                 | Shortcut for npm method                                                 |
-| `--git \| --github`                     | Shortcut for git method                                                 |
-| `--version <version\|dist-tag\|spec>`   | npm version, dist-tag, or package spec (default: `latest`)              |
-| `--beta`                                | Use beta dist-tag if available, else fall back to `latest`              |
-| `--git-dir \| --dir <path>`             | Checkout directory (default: `~/openclaw`)                              |
-| `--no-git-update`                       | Skip `git pull` for existing checkout                                   |
-| `--no-prompt`                           | Disable prompts                                                         |
-| `--no-onboard`                          | Skip onboarding                                                         |
-| `--onboard`                             | Enable onboarding                                                       |
-| `--verify`                              | Run a post-install smoke verify (`--version`, gateway health if loaded) |
-| `--dry-run`                             | Print actions without applying changes                                  |
-| `--verbose`                             | Enable debug output (`set -x`, npm notice-level logs)                   |
-| `--help \| -h`                          | Show usage                                                              |
+| `--install-method \| --method npm\|git` | 选择安装方式（默认：`npm`）                                             |
+| `--npm`                                 | npm 方式的快捷参数                                                      |
+| `--git \| --github`                     | git 方式的快捷参数                                                      |
+| `--version <version\|dist-tag\|spec>`   | npm 版本、dist-tag 或包 spec（默认：`latest`）                          |
+| `--beta`                                | 若有 beta dist-tag 则使用，否则回退到 `latest`                          |
+| `--git-dir \| --dir <path>`             | checkout 目录（默认：`~/openclaw`）                                     |
+| `--no-git-update`                       | 对已有 checkout 跳过 `git pull`                                         |
+| `--no-prompt`                           | 禁用交互提示                                                            |
+| `--no-onboard`                          | 跳过 onboarding                                                         |
+| `--onboard`                             | 启用 onboarding                                                         |
+| `--verify`                              | 安装后运行冒烟验证（`--version`，以及已加载时的 gateway 健康检查）      |
+| `--dry-run`                             | 仅打印将执行的操作，不做任何更改                                        |
+| `--verbose`                             | 启用调试输出（`set -x`、npm notice 级别日志）                           |
+| `--help \| -h`                          | 显示用法                                                                |
 
   </Accordion>
 
-  <Accordion title="Environment variables reference">
+  <Accordion title="环境变量参考">
 
-| Variable                                          | Description                                                        |
+| 变量                                              | 说明                                                               |
 | ------------------------------------------------- | ------------------------------------------------------------------ |
-| `OPENCLAW_INSTALL_METHOD=git\|npm`                | Install method                                                     |
-| `OPENCLAW_VERSION=latest\|next\|<semver>\|<spec>` | npm version, dist-tag, or package spec                             |
-| `OPENCLAW_BETA=0\|1`                              | Use beta if available                                              |
-| `OPENCLAW_HOME=<path>`                            | Base directory for OpenClaw state and default git/onboarding paths |
-| `OPENCLAW_GIT_DIR=<path>`                         | Checkout directory                                                 |
-| `OPENCLAW_GIT_UPDATE=0\|1`                        | Toggle git updates                                                 |
-| `OPENCLAW_NO_PROMPT=1`                            | Disable prompts                                                    |
-| `OPENCLAW_VERIFY_INSTALL=1`                       | Run the post-install smoke verify                                  |
-| `OPENCLAW_NO_ONBOARD=1`                           | Skip onboarding                                                    |
-| `OPENCLAW_DRY_RUN=1`                              | Dry run mode                                                       |
-| `OPENCLAW_VERBOSE=1`                              | Debug mode                                                         |
-| `OPENCLAW_NPM_LOGLEVEL=error\|warn\|notice`       | npm log level (default: `error`, hides npm deprecation noise)      |
+| `OPENCLAW_INSTALL_METHOD=git\|npm`                | 安装方式                                                           |
+| `OPENCLAW_VERSION=latest\|next\|<semver>\|<spec>` | npm 版本、dist-tag 或包 spec                                       |
+| `OPENCLAW_BETA=0\|1`                              | 有 beta 时使用                                                     |
+| `OPENCLAW_HOME=<path>`                            | OpenClaw 状态的基目录，以及默认的 git/onboarding 路径              |
+| `OPENCLAW_GIT_DIR=<path>`                         | checkout 目录                                                      |
+| `OPENCLAW_GIT_UPDATE=0\|1`                        | 开关 git 更新                                                      |
+| `OPENCLAW_NO_PROMPT=1`                            | 禁用交互提示                                                       |
+| `OPENCLAW_VERIFY_INSTALL=1`                       | 运行安装后冒烟验证                                                 |
+| `OPENCLAW_NO_ONBOARD=1`                           | 跳过 onboarding                                                    |
+| `OPENCLAW_DRY_RUN=1`                              | 试运行模式                                                         |
+| `OPENCLAW_VERBOSE=1`                              | 调试模式                                                           |
+| `OPENCLAW_NPM_LOGLEVEL=error\|warn\|notice`       | npm 日志级别（默认：`error`，隐藏 npm 弃用警告噪音）               |
 
   </Accordion>
 </AccordionGroup>
@@ -224,277 +223,62 @@ object is unavailable or cannot resolve to a commit.
 ## install-cli.sh
 
 <Info>
-Designed for environments where you want everything under a local prefix
-(default `~/.openclaw`) and no system Node dependency. Supports npm installs
-by default, plus git-checkout installs under the same prefix flow.
+适用于希望所有内容都放在本地前缀（默认 `~/.openclaw`）下、
+且不依赖系统 Node 的环境。默认支持 npm 安装，
+也支持在同一前缀流程下进行 git checkout 安装。
 </Info>
 
-### Flow (install-cli.sh)
+### 安装流程（install-cli.sh）
 
 <Steps>
-  <Step title="Install local Node runtime">
-    Downloads a pinned supported Node LTS tarball (the version is embedded in the script and updated independently, default `24.19.0`) to `<prefix>/tools/node-v<version>` and verifies SHA-256.
-    Linux ARMv7 stops before installation because official Node 24+ ARMv7 binaries are unavailable. Use a 64-bit OS on compatible hardware or another supported host.
-    On Alpine/musl Linux, where Node does not publish compatible tarballs for the pinned runtime, installs `nodejs` and `npm` with `apk`, then verifies both Node and the actual linked SQLite library. Current stable Alpine package streams may still link vulnerable SQLite even with a new-enough Node; use an official `node:26-alpine` container or a glibc-based host when the safety check rejects the package.
+  <Step title="安装本地 Node 运行时">
+    下载受支持的、版本固定的 Node LTS tarball（版本号内嵌在脚本中并独立更新，默认 `24.19.0`）到 `<prefix>/tools/node-v<version>`，并校验 SHA-256。
+    由于官方未提供 Node 24+ 的 ARMv7 二进制文件，Linux ARMv7 会在安装开始前停止。请在兼容硬件上使用 64 位操作系统，或换用其他受支持的主机。
+    在 Alpine/musl Linux 上，由于 Node 未针对固定运行时发布兼容的 tarball，会改用 `apk` 安装 `nodejs` 和 `npm`，然后同时验证 Node 与实际链接的 SQLite 库。当前稳定版 Alpine 软件包源即使 Node 版本够新，仍可能链接存在漏洞的 SQLite；当安全检查拒绝该软件包时，请使用官方 `node:26-alpine` 容器或基于 glibc 的主机。
   </Step>
-  <Step title="Ensure Git">
-    If Git is missing, attempts install via apt/dnf/yum/apk on Linux or Homebrew on macOS.
+  <Step title="确保有 Git">
+    若缺少 Git，则在 Linux 上尝试通过 apt/dnf/yum/apk 安装，在 macOS 上通过 Homebrew 安装。
   </Step>
-  <Step title="Install OpenClaw under prefix">
-    - `npm` method (default): installs under the prefix with npm, then writes wrapper to `<prefix>/bin/openclaw`
-    - `git` method: clones/updates a checkout (default `~/openclaw`) and still writes the wrapper to `<prefix>/bin/openclaw`
+  <Step title="在前缀下安装 OpenClaw">
+    - `npm` 方式（默认）：用 npm 安装到前缀下，然后将 wrapper 写入 `<prefix>/bin/openclaw`
+    - `git` 方式：克隆/更新 checkout（默认 `~/openclaw`），wrapper 同样写入 `<prefix>/bin/openclaw`
 
   </Step>
-  <Step title="Verify the installed CLI">
-    Runs `<prefix>/bin/openclaw --version` and stops with an error unless the
-    installed wrapper exits successfully with a nonempty version.
+  <Step title="验证已安装的 CLI">
+    运行 `<prefix>/bin/openclaw --version`，除非已安装的 wrapper 成功退出且版本号非空，
+    否则报错停止。
   </Step>
-  <Step title="Refresh loaded gateway service">
-    If a gateway service is already loaded from that same prefix, the script runs
-    `openclaw gateway install --force`, which activates the replacement service,
-    and then probes gateway health best-effort.
+  <Step title="刷新已加载的 gateway 服务">
+    如果 gateway 服务已从同一前缀加载，脚本会运行
+    `openclaw gateway install --force` 以激活替换后的服务，
+    然后尽力探测 gateway 健康状态。
   </Step>
 </Steps>
 
-### Examples (install-cli.sh)
+### 示例（install-cli.sh）
 
 <Tabs>
-  <Tab title="Default">
+  <Tab title="默认">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash
     ```
   </Tab>
-  <Tab title="Custom prefix + version">
+  <Tab title="自定义前缀 + 版本">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --prefix /opt/openclaw --version latest
     ```
   </Tab>
-  <Tab title="Git install">
+  <Tab title="Git 安装">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --install-method git --git-dir ~/openclaw
     ```
   </Tab>
-  <Tab title="Automation JSON output">
+  <Tab title="自动化 JSON 输出">
     ```bash
     curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/openclaw
     ```
-  </Tab>
-  <Tab title="Run onboarding">
-    ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --onboard
-    ```
+
   </Tab>
 </Tabs>
 
-<AccordionGroup>
-  <Accordion title="Flags reference">
-
-| Flag                                    | Description                                                                     |
-| --------------------------------------- | ------------------------------------------------------------------------------- |
-| `--prefix <path>`                       | Install prefix (default: `~/.openclaw`)                                         |
-| `--install-method \| --method npm\|git` | Choose install method (default: `npm`)                                          |
-| `--npm`                                 | Shortcut for npm method                                                         |
-| `--git \| --github`                     | Shortcut for git method                                                         |
-| `--git-dir \| --dir <path>`             | Git checkout directory (default: `~/openclaw`)                                  |
-| `--no-git-update`                       | Skip `git pull` for an existing git checkout                                    |
-| `--version <ver>`                       | OpenClaw version or dist-tag (default: `latest`)                                |
-| `--compatible-with <ver>`               | Refuse a CLI that cannot modify config written by `<ver>`                       |
-| `--node-version <ver>`                  | Node version (default: `24.19.0`)                                               |
-| `--json`                                | Emit NDJSON events                                                              |
-| `--onboard`                             | Run `openclaw onboard` after install                                            |
-| `--no-onboard`                          | Skip onboarding (default)                                                       |
-| `--set-npm-prefix`                      | On Linux, force npm prefix to `~/.npm-global` if current prefix is not writable |
-| `--help \| -h`                          | Show usage                                                                      |
-
-  </Accordion>
-
-  <Accordion title="Environment variables reference">
-
-| Variable                                    | Description                                                        |
-| ------------------------------------------- | ------------------------------------------------------------------ |
-| `OPENCLAW_PREFIX=<path>`                    | Install prefix                                                     |
-| `OPENCLAW_INSTALL_METHOD=git\|npm`          | Install method                                                     |
-| `OPENCLAW_VERSION=<ver>`                    | OpenClaw version or dist-tag                                       |
-| `OPENCLAW_NODE_VERSION=<ver>`               | Node version                                                       |
-| `OPENCLAW_HOME=<path>`                      | Base directory for OpenClaw state and default git/onboarding paths |
-| `OPENCLAW_GIT_DIR=<path>`                   | Git checkout directory for git installs                            |
-| `OPENCLAW_GIT_UPDATE=0\|1`                  | Toggle git updates for existing checkouts                          |
-| `OPENCLAW_NO_ONBOARD=1`                     | Skip onboarding                                                    |
-| `OPENCLAW_NPM_LOGLEVEL=error\|warn\|notice` | npm log level (default: `error`)                                   |
-
-  </Accordion>
-</AccordionGroup>
-
-<Note>
-`openclaw@main` and other GitHub source specs are not valid `--version` targets for npm installs. Use `--install-method git --version main` instead.
-</Note>
-
----
-
-<a id="installps1"></a>
-
-## install.ps1
-
-### Flow (install.ps1)
-
-<Steps>
-  <Step title="Ensure PowerShell + Windows environment">
-    Requires PowerShell 5+.
-  </Step>
-  <Step title="Ensure a supported Node.js runtime">
-    If missing, attempts install via winget, then Chocolatey, then Scoop. If no package manager is available, the script downloads the official Node.js 26 Windows zip into `%LOCALAPPDATA%\OpenClaw\deps\portable-node` and adds it to the current process and user PATH. Node 24.16+ and Node 26.1+ are supported; Node 22, 23, and 25 are unsupported.
-  </Step>
-  <Step title="Install OpenClaw">
-    - `npm` method (default): global npm install using the selected `-Tag`, launched from a writable installer temp directory so shells opened in protected folders such as `C:\` still work
-    - `git` method: clone/update repo, install/build with pnpm, and install wrapper at `%USERPROFILE%\.local\bin\openclaw.cmd`. If Git is missing, the script bootstraps user-local MinGit under `%LOCALAPPDATA%\OpenClaw\deps\portable-git` and adds it to the current process and user PATH.
-
-  </Step>
-  <Step title="Post-install tasks">
-    - Adds needed bin directory to user PATH when possible
-    - Refreshes a loaded gateway service best-effort (`openclaw gateway install --force`, then restart)
-    - Runs `openclaw doctor --fix --non-interactive` on upgrades and git installs; failure prevents an upgrade-success result
-
-  </Step>
-  <Step title="Handle failures">
-    `iwr ... | iex` and scriptblock installs report a terminating error without closing the current PowerShell session. Direct `powershell -File` / `pwsh -File` installs still exit non-zero for automation.
-  </Step>
-</Steps>
-
-### Examples (install.ps1)
-
-<Tabs>
-  <Tab title="Default">
-    ```powershell
-    iwr -useb https://openclaw.ai/install.ps1 | iex
-    ```
-  </Tab>
-  <Tab title="Git install">
-    ```powershell
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -InstallMethod git
-    ```
-  </Tab>
-  <Tab title="GitHub main checkout">
-    ```powershell
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -InstallMethod git -Tag main
-    ```
-  </Tab>
-  <Tab title="Custom git directory">
-    ```powershell
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -InstallMethod git -GitDir "C:\openclaw"
-    ```
-  </Tab>
-  <Tab title="Dry run">
-    ```powershell
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -DryRun
-    ```
-  </Tab>
-</Tabs>
-
-<AccordionGroup>
-  <Accordion title="Flags reference">
-
-| Flag                        | Description                                                |
-| --------------------------- | ---------------------------------------------------------- |
-| `-InstallMethod npm\|git`   | Install method (default: `npm`)                            |
-| `-Tag <tag\|version\|spec>` | npm dist-tag, version, or package spec (default: `latest`) |
-| `-GitDir <path>`            | Checkout directory (default: `%USERPROFILE%\openclaw`)     |
-| `-NoOnboard`                | Skip onboarding                                            |
-| `-NoGitUpdate`              | Skip `git pull`                                            |
-| `-DryRun`                   | Print actions only                                         |
-| `-Help`                     | Show usage for downloaded scriptblock invocation           |
-
-  </Accordion>
-
-  <Accordion title="Environment variables reference">
-
-| Variable                           | Description        |
-| ---------------------------------- | ------------------ |
-| `OPENCLAW_INSTALL_METHOD=git\|npm` | Install method     |
-| `OPENCLAW_GIT_DIR=<path>`          | Checkout directory |
-| `OPENCLAW_NO_ONBOARD=1`            | Skip onboarding    |
-| `OPENCLAW_GIT_UPDATE=0`            | Disable git pull   |
-| `OPENCLAW_DRY_RUN=1`               | Dry run mode       |
-
-  </Accordion>
-</AccordionGroup>
-
-<Note>
-Pass installer options by name. Unknown options and positional arguments are rejected before downloads, PATH changes, or installation begin. Use `-?` with a saved `install.ps1` file, or `-Help` with the downloaded scriptblock form.
-</Note>
-
-<Note>
-If `-InstallMethod git` is used and Git is missing, the script tries a user-local MinGit bootstrap before printing the Git for Windows link.
-</Note>
-
----
-
-## CI and automation
-
-Use non-interactive flags/env vars for predictable runs.
-
-<Tabs>
-  <Tab title="install.sh (non-interactive npm)">
-    ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-prompt --no-onboard
-    ```
-  </Tab>
-  <Tab title="install.sh (non-interactive git)">
-    ```bash
-    OPENCLAW_INSTALL_METHOD=git OPENCLAW_NO_PROMPT=1 \
-      curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
-    ```
-  </Tab>
-  <Tab title="install-cli.sh (JSON)">
-    ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/openclaw
-    ```
-  </Tab>
-  <Tab title="install.ps1 (skip onboarding)">
-    ```powershell
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title="Why is Git required?">
-    Git is required for the `git` install method. For `npm` installs, Git is still checked/installed to avoid `spawn git ENOENT` failures when dependencies use git URLs.
-  </Accordion>
-
-  <Accordion title="Why does npm hit EACCES on Linux?">
-    Some Linux setups point npm's global prefix to root-owned paths. `install.sh` can switch the prefix to `~/.npm-global` and append PATH exports to shell rc files (when those files exist).
-  </Accordion>
-
-  <Accordion title='Windows: "npm error spawn git / ENOENT"'>
-    Rerun the installer so it can bootstrap user-local MinGit, or install Git for Windows and reopen PowerShell.
-  </Accordion>
-
-  <Accordion title='Windows: "openclaw is not recognized"'>
-    Run `npm config get prefix` and add that directory to your user PATH (no `\bin` suffix needed on Windows), then reopen PowerShell.
-  </Accordion>
-
-  <Accordion title="Windows: how to get verbose installer output">
-    `install.ps1` uses `CmdletBinding`, so it accepts PowerShell's common `-Verbose` parameter. The installer does not currently write a dedicated verbose stream. For script-level diagnostics, use PowerShell tracing:
-
-    ```powershell
-    Set-PSDebug -Trace 1
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard
-    Set-PSDebug -Trace 0
-    ```
-
-  </Accordion>
-
-  <Accordion title="openclaw not found after install">
-    Usually a PATH issue. See [Node.js troubleshooting](/install/node#troubleshooting).
-  </Accordion>
-</AccordionGroup>
-
-## Related
-
-- [Install overview](/install)
-- [Updating](/install/updating)
-- [Uninstall](/install/uninstall)
+> 注:篇幅所限仅译核心章节,完整内容见原项目。

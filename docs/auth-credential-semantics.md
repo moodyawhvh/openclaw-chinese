@@ -1,149 +1,135 @@
+> 🌐 本文档由 [openclaw/openclaw](https://github.com/openclaw/openclaw) 翻译,英文原版见原项目。
+
 ---
-summary: "Canonical credential eligibility and resolution semantics for auth profiles"
-title: "Auth credential semantics"
+summary: "auth profile 的凭据资格判定与解析的权威语义"
+title: "身份验证凭据语义"
 read_when:
-  - Working on auth profile resolution or credential routing
-  - Debugging model auth failures or profile order
+  - 处理 auth profile 解析或凭据路由时
+  - 调试模型身份验证失败或 profile 顺序时
 ---
 
-These semantics keep selection-time and runtime auth behavior aligned. They are shared by:
+这些语义确保选择阶段与运行时的身份验证行为保持一致。它们被以下组件共用:
 
-- `resolveAuthProfileOrder` (profile ordering)
-- `resolveApiKeyForProfile` (runtime credential resolution)
+- `resolveAuthProfileOrder`(profile 排序)
+- `resolveApiKeyForProfile`(运行时凭据解析)
 - `openclaw models status --probe`
-- `openclaw doctor` auth checks (`doctor-auth`)
+- `openclaw doctor` 的 auth 检查(`doctor-auth`)
 
-## Stable probe reason codes
+## 稳定的探测原因码
 
-Probe results carry a `status` bucket (`ok`, `auth`, `rate_limit`, `billing`, `timeout`, `format`, `unknown`, `no_model`) plus a stable `reasonCode` when the probe never reached a model call:
+探测结果会携带一个 `status` 分类(`ok`、`auth`、`rate_limit`、`billing`、`timeout`、`format`、`unknown`、`no_model`);当探测根本未发起模型调用时,还会附带一个稳定的 `reasonCode`:
 
-| `reasonCode`             | Meaning                                                                      |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| `excluded_by_auth_order` | Profile omitted from the explicit auth order for its provider.               |
-| `missing_credential`     | No inline credential or SecretRef is configured.                             |
-| `expired`                | Token `expires` is in the past.                                              |
-| `invalid_expires`        | `expires` is not a valid positive Unix ms timestamp.                         |
-| `unresolved_ref`         | Configured SecretRef could not be resolved.                                  |
-| `ineligible_profile`     | Profile is incompatible with provider config (includes malformed key input). |
-| `no_model`               | Credentials exist but no probeable model candidate resolved.                 |
+| `reasonCode`             | 含义                                                                      |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `excluded_by_auth_order` | 该 profile 被其所属 provider 的显式 auth 顺序排除在外。                    |
+| `missing_credential`     | 未配置内联凭据或 SecretRef。                                               |
+| `expired`                | 令牌的 `expires` 时间已过。                                                |
+| `invalid_expires`        | `expires` 不是有效的正数 Unix 毫秒时间戳。                                 |
+| `unresolved_ref`         | 已配置的 SecretRef 无法解析。                                              |
+| `ineligible_profile`     | profile 与 provider 配置不兼容(包括格式非法的密钥输入)。                   |
+| `no_model`               | 凭据存在,但没有解析出可探测的模型候选。                                    |
 
-Eligibility checks report `ok` as the reason code for usable credentials.
+资格检查对可用的凭据报告 `ok` 作为原因码。
 
-## Token credentials
+## Token 凭据
 
-Token credentials (`type: "token"`) support inline `token` and/or `tokenRef`.
+Token 凭据(`type: "token"`)支持内联 `token` 和/或 `tokenRef`。
 
-### Eligibility rules
+### 资格规则
 
-1. A token profile is ineligible when both `token` and `tokenRef` are absent (`missing_credential`).
-2. `expires` is optional. When present it must be a finite number of Unix epoch milliseconds greater than `0` and no larger than the maximum JavaScript `Date` timestamp (8640000000000000).
-3. If `expires` is invalid (wrong type, `NaN`, `0`, negative, non-finite, or beyond that maximum), the profile is ineligible with `invalid_expires`.
-4. If `expires` is in the past, the profile is ineligible with `expired`.
-5. `tokenRef` does not bypass `expires` validation.
+1. 当 `token` 与 `tokenRef` 均缺失时,该 token profile 不具备资格(`missing_credential`)。
+2. `expires` 是可选的。若提供,它必须是一个有限的 Unix 纪元毫秒数,大于 `0`,且不超过 JavaScript `Date` 的最大时间戳(8640000000000000)。
+3. 如果 `expires` 非法(类型错误、`NaN`、`0`、负数、非有限值或超出该最大值),该 profile 不具备资格,原因为 `invalid_expires`。
+4. 如果 `expires` 已成过去,该 profile 不具备资格,原因为 `expired`。
+5. `tokenRef` 不能绕过 `expires` 校验。
 
-### Resolution rules
+### 解析规则
 
-1. Resolver semantics match eligibility semantics for `expires`.
-2. For eligible profiles, token material may be resolved from the inline value or `tokenRef`.
-3. Unresolvable refs produce `unresolved_ref` in `models status --probe` output.
+1. 解析器对 `expires` 的语义与资格语义一致。
+2. 对具备资格的 profile,令牌材料可以从内联值或 `tokenRef` 解析得到。
+3. 无法解析的 ref 会在 `models status --probe` 输出中产生 `unresolved_ref`。
 
-## Agent copy portability
+## Agent 副本可移植性
 
-Agent auth inheritance is read-through. When an agent has no local profile, it resolves profiles from the shared auth store at runtime without copying secret material into its own credential store (`agents/<agentId>/agent/openclaw-agent.sqlite`). The shared store lives in `state/openclaw.sqlite` after `openclaw doctor --fix` performs the one-time relocation. Until then, doctor reports the legacy `agents/main/agent/openclaw-agent.sqlite` owner and leaves that agent undeletable.
+Agent 的 auth 继承是读取穿透式的。当某个 agent 没有本地 profile 时,它会在运行时从共享 auth 存储解析 profile,而不会把密钥材料复制进自己的凭据存储(`agents/<agentId>/agent/openclaw-agent.sqlite`)。在 `openclaw doctor --fix` 完成一次性迁移之后,共享存储位于 `state/openclaw.sqlite`。在此之前,doctor 会报告遗留的 `agents/main/agent/openclaw-agent.sqlite` 属主,并且该 agent 无法删除。
 
-Explicit copy flows, such as `openclaw agents add`, use this portability policy:
+显式复制流程(例如 `openclaw agents add`)遵循以下可移植性策略:
 
-- `api_key` and `token` profiles are portable unless `copyToAgents: false`.
-- `oauth` profiles are not portable by default because refresh tokens can be single-use or rotation-sensitive.
-- Provider-owned OAuth flows may opt in with `copyToAgents: true` only when copying refresh material across agents is known safe; the opt-in only applies when the profile carries inline access/refresh material.
+- `api_key` 与 `token` profile 可移植,除非设置 `copyToAgents: false`。
+- `oauth` profile 默认不可移植,因为刷新令牌可能是一次性的或对轮换敏感。
+- provider 自有的 OAuth 流程可以在已知跨 agent 复制刷新材料安全的前提下,通过 `copyToAgents: true` 选择加入;该选择仅在 profile 携带内联 access/refresh 材料时生效。
 
-Non-portable profiles remain available through the shared read-through base unless the target agent signs in separately and creates its own local profile.
+不可移植的 profile 仍可通过共享的读取穿透基础使用,除非目标 agent 单独登录并创建自己的本地 profile。
 
-`openclaw agent exec` preserves the original shared-store root when switching to temporary run state. Its bounded credential scope reads portable `api_key` and `token` profiles from that shared store without persisting copies; the configured agent's local profiles still win. Shared OAuth profiles are excluded from this temporary scope, even with `copyToAgents: true`, so the run does not acquire another refresh owner. `--auth-env-only` disables stored credential access entirely.
+`openclaw agent exec` 在切换到临时运行状态时会保留原始的共享存储根目录。其受限的凭据作用域会从该共享存储读取可移植的 `api_key` 与 `token` profile,而不持久化副本;所配置 agent 的本地 profile 仍然优先。共享 OAuth profile 被排除在该临时作用域之外,即使设置了 `copyToAgents: true` 也是如此,这样运行过程就不会获得另一个刷新属主。`--auth-env-only` 会完全禁用对已存储凭据的访问。
 
-Auth writes that explicitly select a state directory, including isolated QA staging, use that directory's shared store for ownership and OAuth deduplication. Their runtime publication and rollback retain the same owner; another process-local state root is not an inherited base. An unrelated outer database may be older, newer, or unreadable without blocking an isolated write, but an unreadable or newer database in the selected target still fails closed. Writes without an explicit state directory retain the normal ambient state and agent-directory configuration.
+显式选择状态目录的 auth 写入(包括隔离的 QA 暂存)会使用该目录的共享存储进行属主判定与 OAuth 去重。其运行时发布与回滚保持同一属主;其他进程本地的状态根不作为继承基础。无关的外层数据库可以更旧、更新或不可读,都不会阻塞隔离写入;但所选目标中不可读或更新的数据库仍会导致写入以失败收场。未显式指定状态目录的写入保持常规的环境状态与 agent 目录配置。
 
-## Personal model accounts
+## 个人模型账户
 
-Accounts connected from **Settings → Profile → Connected accounts** have an identity-scoped owner in the shared state database. Their credentials and usage state never enter shared or agent-local auth stores, external CLI mirrors, or global runtime snapshots. A runtime loads at most the one personal credential selected by its session. Unlinked personal accounts remain usable by existing session pins, not by automatic selection for new sessions.
+从 **Settings → Profile → Connected accounts** 连接的账户在共享状态数据库中拥有一个按身份划分的属主。它们的凭据与使用状态绝不会进入共享或 agent 本地的 auth 存储、外部 CLI 镜像或全局运行时快照。运行时最多加载其会话所选定的那一个个人凭据。未关联的个人账户仍可被既有的会话固定(session pin)使用,但不会被自动选择用于新的会话。
 
-Personal pins keep the existing same-provider failover policy: ordered shared accounts can be tried after a pinned account fails. They do not make another person's personal account a fallback. Reconnecting can replace only the connecting person's own credential; shared credentials referenced by an administrator-created link are not personal property. See [Per-person model accounts](/concepts/multi-user#per-person-model-accounts).
+个人固定沿用既有的同 provider 故障转移策略:被固定的账户失败后,可按顺序尝试共享账户。它们不会把另一个人的个人账户当作回退。重新连接只能替换连接者本人的凭据;由管理员创建的关联所引用的共享凭据不属于个人财产。参见[按人划分的模型账户](/concepts/multi-user#per-person-model-accounts)。
 
-## Config-only auth routes
+## 仅配置式的 auth 路由
 
-`auth.profiles` entries with `mode: "aws-sdk"` are routing metadata, not stored credentials. They are valid when the target provider uses `models.providers.<id>.auth: "aws-sdk"`, the route the plugin-owned Amazon Bedrock setup writes. These profile ids may appear in `auth.order` and session overrides even when no matching entry exists in the credential store.
+带有 `mode: "aws-sdk"` 的 `auth.profiles` 条目是路由元数据,而不是已存储的凭据。当目标 provider 使用 `models.providers.<id>.auth: "aws-sdk"`(即插件自有的 Amazon Bedrock 安装流程所写入的路由)时,这些条目是有效的。即使凭据存储中不存在匹配条目,这些 profile id 也可以出现在 `auth.order` 和会话覆盖中。
 
-Do not write `type: "aws-sdk"` into the credential store; stored credentials are only `api_key`, `token`, or `oauth`. If a legacy `auth-profiles.json` has such a marker, `openclaw doctor --fix` moves it to `auth.profiles` and removes the marker from the store.
+不要把 `type: "aws-sdk"` 写入凭据存储;已存储的凭据只能是 `api_key`、`token` 或 `oauth`。如果旧版 `auth-profiles.json` 中存在这样的标记,`openclaw doctor --fix` 会把它移到 `auth.profiles`,并从存储中移除该标记。
 
-When a selected stored profile is removed, credential-scoped model discovery reports `selected_auth_profile_unavailable` before consulting dynamic model metadata. Restore the credential or select another configured profile; registering the model does not repair missing authentication. Config-only AWS SDK profiles remain valid without a stored credential. Chat admission and agent commands retain an explicit same-provider selection when its credential disappears so authentication can report recovery. Stale automatic selections and selections for incompatible providers are still cleared.
+当被选中的已存储 profile 被移除时,凭据范围的模型发现会在查询动态模型元数据之前报告 `selected_auth_profile_unavailable`。请恢复凭据或选择另一个已配置的 profile;注册模型并不能修复缺失的身份验证。仅配置式的 AWS SDK profile 在没有已存储凭据时仍然有效。当其凭据消失时,聊天准入与 agent 命令仍会保留显式的同 provider 选择,以便身份验证能够报告恢复情况。过期的自动选择以及指向不兼容 provider 的选择仍会被清除。
 
-## Explicit auth order filtering
+## 显式 auth 顺序过滤
 
-- When `auth.order.<provider>` or the auth-store order override is set for a provider, `models status --probe` only probes profile ids that remain in the resolved auth order for that provider. The stored override wins over `auth.order` config.
-- A stored profile for that provider that is omitted from the explicit order is not silently tried later. Probe output reports it with `reasonCode: excluded_by_auth_order` and the detail `Excluded by auth.order for this provider.`
-- A valid session user pin is an explicit per-session exception: OpenClaw tries that profile first even when it is omitted from the provider order, then uses the ordered same-provider profiles as retry candidates. A cooldown or disabled window applies only to the affected profile; it does not suppress its eligible siblings.
+- 当为某个 provider 设置了 `auth.order.<provider>` 或 auth 存储的顺序覆盖时,`models status --probe` 只探测在该 provider 已解析 auth 顺序中仍然保留的 profile id。已存储的覆盖优先于 `auth.order` 配置。
+- 该 provider 的某个已存储 profile 若被显式顺序省略,不会在之后被静默尝试。探测输出会以 `reasonCode: excluded_by_auth_order` 及详情 `Excluded by auth.order for this provider.` 报告它。
+- 有效的会话用户固定是一个显式的按会话例外:即使该 profile 被排除在 provider 顺序之外,OpenClaw 也会先尝试它,然后使用按序排列的同 provider profile 作为重试候选。冷却或禁用窗口仅作用于受影响的 profile,不会抑制其具备资格的同级 profile。
 
-Prepared agent requests use their selected plugin metadata, configuration, workspace, and environment for auth profile eligibility, ordering, and environment credential evidence. An empty selected plugin set remains authoritative; another request’s plugin aliases cannot add profiles or change the credential owner.
+已准备的 agent 请求使用其自身选定的插件元数据、配置、工作区和环境来进行 auth profile 资格判定、排序以及环境凭据取证。空的选择插件集仍然是权威的;其他请求的插件别名无法添加 profile 或更改凭据属主。
 
-## Model catalog discovery
+## 模型目录发现
 
-Stored-profile selection for model discovery follows the canonical auth order and
-eligibility rules. A cooldown limited to one model does not suppress account-wide
-catalog discovery. Configured subscription modes remain attached to direct
-credentials, and successful OAuth preparation supplies the resolved current token
-to its catalog consumer rather than the captured store's older token.
+模型发现的已存储 profile 选择遵循权威的 auth 顺序与资格规则。仅限单个模型的冷却不会抑制账户级的目录发现。已配置的订阅模式仍附着于直接凭据,而成功的 OAuth 准备会把解析出的当前令牌提供给其目录消费方,而不是被捕获存储中的旧令牌。
 
-Environment-backed profiles keep usable values from the discovery environment,
-including cold command and worker paths. When that material is missing, only the
-selected profile's activated snapshot may supply it; otherwise discovery reports
-`unavailable` before catalog HTTP. Reference names are never sent as credentials
-or replaced with another profile's credential. On a Gateway, restore the secret
-and run `openclaw secrets reload` before retrying discovery.
+基于环境的 profile 会保留来自发现环境的可用值,包括冷启动命令与工作进程路径。当这些材料缺失时,只有所选 profile 的已激活快照可以提供它们;否则发现流程会在发起目录 HTTP 请求之前报告 `unavailable`。引用名称绝不会作为凭据发送,也不会被另一个 profile 的凭据替换。在 Gateway 上,请先恢复密钥并运行 `openclaw secrets reload`,再重试发现。
 
-When every eligible OAuth candidate fails preparation, discovery reports
-`unavailable` with the attempted profile identities instead of treating the
-provider as unconfigured. Compatible prior inventory remains available. A usable
-fallback credential still supplies its own catalog result.
+当所有具备资格的 OAuth 候选的准备都失败时,发现流程会报告 `unavailable` 并附带已尝试的 profile 标识,而不是把该 provider 视为未配置。兼容的既有清单仍然可用。可用的回退凭据仍会提供自己的目录结果。
 
-When a catalog deadline expires, late provider results are discarded before
-finalization. An already-started hook or OAuth refresh may finish, including
-persisting a rotated credential, but cannot publish to the expired catalog run.
+当目录截止时间到期后,迟到的 provider 结果会在最终化之前被丢弃。已经开始的钩子或 OAuth 刷新可以继续完成(包括持久化已轮换的凭据),但无法向已过期的目录运行发布结果。
 
-API-key-oriented and full-auth catalog callbacks retain their existing source
-priorities. Plugins must keep credential bytes and their authentication mode from
-the same selection. Catalog failure and recovery preserve the
-[model inventory contract](/concepts/models#selection-source-and-fallback-strictness);
-they do not change message-execution profile rotation or session pins.
+面向 API key 的与完整 auth 的目录回调保留其既有的来源优先级。插件必须保证凭据字节与其 auth 模式来自同一次选择。目录失败与恢复遵循[模型清单契约](/concepts/models#selection-source-and-fallback-strictness);它们不会改变消息执行的 profile 轮换或会话固定。
 
-## Probe target resolution
+## 探测目标解析
 
-- Probe targets can come from auth profiles, environment credentials, or `models.json` (result `source`: `profile`, `env`, `models.json`).
-- If a provider has credentials but OpenClaw cannot resolve a probeable model candidate for it, `models status --probe` reports `status: no_model` with `reasonCode: no_model`.
+- 探测目标可以来自 auth profile、环境凭据或 `models.json`(结果的 `source`:`profile`、`env`、`models.json`)。
+- 如果某个 provider 拥有凭据,但 OpenClaw 无法为其解析出可探测的模型候选,`models status --probe` 会报告 `status: no_model` 与 `reasonCode: no_model`。
 
-## External CLI credential discovery
+## 外部 CLI 凭据发现
 
-- Runtime-only credentials owned by external CLIs (Claude CLI for `claude-cli`, Codex CLI for `openai`, MiniMax CLI for `minimax-portal`) are discovered only when the provider, runtime, or auth profile is in scope for the current operation, or when a stored local profile for that external source already exists.
-- Auth-store callers choose an explicit external-CLI discovery mode: `none` for persisted/plugin auth only, `existing` for refreshing already stored external CLI profiles, or `scoped` for a concrete provider/profile set.
-- Read-only/status paths pass `allowKeychainPrompt: false`; they use file-backed external CLI credentials only and do not read or reuse macOS Keychain results.
-- `/models` reuses external login evidence already prepared with its catalog, so those providers remain visible without a second OpenClaw login. Opening the default menu does not repeat external CLI discovery; explicit auth order and route compatibility still apply.
+- 仅归外部 CLI 所有的运行时凭据(`claude-cli` 对应 Claude CLI、`openai` 对应 Codex CLI、`minimax-portal` 对应 MiniMax CLI)只有在相关 provider、运行时或 auth profile 处于当前操作范围之内,或者该外部来源的已存储本地 profile 已经存在时,才会被发现。
+- auth 存储的调用方会选择一个显式的外部 CLI 发现模式:`none` 表示仅限持久化/插件 auth,`existing` 表示刷新已存储的外部 CLI profile,`scoped` 表示针对具体的 provider/profile 集合。
+- 只读/状态路径传入 `allowKeychainPrompt: false`;它们只使用基于文件的外部 CLI 凭据,不读取也不复用 macOS Keychain 的结果。
+- `/models` 会复用已与其目录一同准备好的外部登录证据,因此这些 provider 无需再次 OpenClaw 登录即可保持可见。打开默认菜单不会重复外部 CLI 发现;显式 auth 顺序与路由兼容性规则仍然适用。
 
-## OAuth SecretRef Policy Guard
+## OAuth SecretRef 策略守卫
 
-SecretRef input is for static credentials only. OAuth credentials are runtime-mutable (refresh flows persist rotated tokens), so SecretRef-backed OAuth material would split mutable state across stores.
+SecretRef 输入仅用于静态凭据。OAuth 凭据在运行时是可变的(刷新流程会持久化轮换后的令牌),因此以 SecretRef 为基础的 OAuth 材料会把可变状态分散到多个存储中。
 
-- If a profile credential is `type: "oauth"`, SecretRef objects are rejected for any credential material field on that profile.
-- If `auth.profiles.<id>.mode` is `"oauth"`, SecretRef-backed `keyRef`/`tokenRef` input for that profile is rejected.
-- Violations are hard failures (thrown errors) in startup/reload secret preparation and profile resolution paths.
+- 如果 profile 凭据为 `type: "oauth"`,则该 profile 的任何凭据材料字段都会拒绝 SecretRef 对象。
+- 如果 `auth.profiles.<id>.mode` 为 `"oauth"`,则该 profile 的 SecretRef 形式的 `keyRef`/`tokenRef` 输入会被拒绝。
+- 违规属于硬失败(抛出错误),出现在启动/重载的密钥准备与 profile 解析路径中。
 
-## Legacy-Compatible Messaging
+## 兼容旧版的消息格式
 
-For script compatibility, probe errors keep this first line unchanged:
+为了脚本兼容性,探测错误的第一行保持不变:
 
 `Auth profile credentials are missing or expired.`
 
-Human-friendly detail and the stable reason code follow on subsequent lines in the form `↳ Auth reason [code]: ...`.
+随后的各行是人类可读的详情与稳定的原因码,格式为 `↳ Auth reason [code]: ...`。
 
-## Related
+## 相关文档
 
-- [Secrets management](/gateway/secrets)
-- [Auth storage](/concepts/oauth)
+- [密钥管理](/gateway/secrets)
+- [auth 存储](/concepts/oauth)
+
+> 注:篇幅所限仅译核心章节,完整内容见原项目。

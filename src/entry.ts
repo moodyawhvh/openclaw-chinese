@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Boots the OpenClaw CLI entry point under Node.
-// CLI process entrypoint for OpenClaw command execution.
+// 在 Node 下启动 OpenClaw CLI 入口。
+// OpenClaw 命令执行的 CLI 进程入口。
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { format } from "node:util";
@@ -77,7 +77,7 @@ async function prepareCliDiagnosticBlockWriter(): Promise<
       );
     };
   };
-  // Explicit traces flush before spawn; successful untraced parents need no diagnostics.
+  // 显式 trace 会在 spawn 前刷新;未带 trace 且执行成功的父进程不需要诊断输出。
   return gatewayEntryStartupTrace.enabled
     ? loadWriter()
     : async (message, error) => (await loadWriter())(message, error);
@@ -104,18 +104,17 @@ function shouldForceReadOnlyAuthStore(argv: string[]): boolean {
 
 const gatewayEntryStartupTrace = createGatewayDispatchStartupTrace(process.argv, "entry");
 
-// Guard: only run entry-point logic when this file is the main module.
-// The bundler may import entry.js as a shared dependency when dist/index.js
-// is the actual entry point; without this guard the top-level code below
-// would call runCli a second time, starting a duplicate gateway that fails
-// on the lock / port and crashes the process.
+// 守卫:仅当本文件作为主模块运行时才执行入口逻辑。
+// 打包器可能在 dist/index.js 才是真正入口时,把 entry.js 作为共享依赖导入;
+// 没有这个守卫,下面的顶层代码会第二次调用 runCli,启动一个重复的 gateway,
+// 它会因锁/端口冲突而失败并导致进程崩溃。
 if (
   !isMainModule({
     currentFile: fileURLToPath(import.meta.url),
     wrapperEntryPairs: [...ENTRY_WRAPPER_PAIRS],
   })
 ) {
-  // Imported as a dependency — skip all entry-point side effects.
+  // 作为依赖被导入——跳过所有入口副作用。
 } else {
   const entryFile = fileURLToPath(import.meta.url);
   const installRoot = resolveEntryInstallRoot(entryFile);
@@ -143,8 +142,8 @@ if (
     currentFile: entryFile,
     installRoot,
     prepareWriteError: async () => {
-      // The child environment was already snapshotted. Load dotenv only to format
-      // the parent trace; command-specific dotenv ordering remains child-owned.
+      // 子进程环境已快照。加载 dotenv 只为格式化父进程 trace;
+      // 命令专属的 dotenv 加载顺序仍由子进程自己控制。
       const writeError = await prepareCliDiagnosticBlockWriter();
       return (message) => writeError(message);
     },
@@ -169,11 +168,11 @@ if (
         return false;
       }
 
-      // The child environment was already snapshotted. Load dotenv only to format
-      // the parent trace; command-specific dotenv ordering remains child-owned.
+      // 子进程环境已快照。加载 dotenv 只为格式化父进程 trace;
+      // 命令专属的 dotenv 加载顺序仍由子进程自己控制。
       const writeError = await prepareCliDiagnosticBlockWriter();
       runCliRespawnPlan(plan, undefined, writeError);
-      // Parent must not continue running the CLI.
+      // 父进程不得继续运行 CLI。
       return true;
     }
 
@@ -186,7 +185,7 @@ if (
 
       const parsed = parseCliProfileArgs(parsedContainer.argv);
       if (!parsed.ok) {
-        // Keep it simple; Commander will handle rich help/errors after we strip flags.
+        // 保持简单;去掉标志后由 Commander 处理详细的帮助/错误信息。
         await writeCapturedCliArgumentError(parsed.error);
         process.exit(2);
       }
@@ -194,7 +193,7 @@ if (
       const containerTargetName = resolveCliContainerTarget(process.argv);
       if (parsed.profile) {
         applyCliProfileEnv({ profile: parsed.profile });
-        // Keep Commander and ad-hoc argv checks consistent.
+        // 保持 Commander 与临时 argv 检查一致。
         process.argv = parsed.argv;
       }
       if (containerTargetName && parsed.profile) {
@@ -283,8 +282,8 @@ export async function runMainOrRootHelp(
   argv: string[],
   deps: RunMainOrRootHelpDeps = {},
 ): Promise<void> {
-  // Command-phase errors reach this handler too: runCommandWithRuntime rethrows in JSON
-  // mode so the envelope is written here. Only failures before runCli are startup failures.
+  // 命令阶段的错误也会进入这个处理器:JSON 模式下 runCommandWithRuntime 会重新抛出,
+  // 以便错误信封在这里写入。只有 runCli 之前的失败才算启动失败。
   let commandStarted = false;
   await runCliWithExitFinalization({
     run: async () => {
@@ -310,7 +309,7 @@ export async function runMainOrRootHelp(
       commandStarted = true;
       await runCli(argv, {
         additionalStartupTrace: gatewayEntryStartupTrace,
-        // Finalizers and process-exit hooks can still emit diagnostics after runCli settles.
+        // runCli 结束后,终结器和进程退出钩子仍可能输出诊断信息。
         retainConsoleRoutingUntilProcessExit: true,
       });
     },

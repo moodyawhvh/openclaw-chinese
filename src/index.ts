@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync } from "node:fs";
-// Re-exports the OpenClaw CLI entry point for package execution.
-// Package executable entrypoint that forwards to the CLI bootstrap.
+// 为包执行场景转发导出 OpenClaw CLI 入口。
+// 包可执行文件入口,转发到 CLI 引导逻辑。
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -57,8 +57,8 @@ type LegacyCliDeps = {
 
 type LibraryExports = typeof import("./library.js");
 
-// These bindings are populated only for library consumers. The CLI entry stays
-// on the lean path and must not read them while running as main.
+// 这些绑定仅为库使用者填充。CLI 入口保持精简路径,
+// 作为主模块运行时不得读取它们。
 export let applyTemplate: LibraryExports["applyTemplate"];
 export let createDefaultDeps: LibraryExports["createDefaultDeps"];
 export let deriveSessionKey: LibraryExports["deriveSessionKey"];
@@ -68,7 +68,7 @@ export let ensurePortAvailable: LibraryExports["ensurePortAvailable"];
 export let getReplyFromConfig: LibraryExports["getReplyFromConfig"];
 export let handlePortError: LibraryExports["handlePortError"];
 export let loadConfig: LibraryExports["loadConfig"];
-/** @deprecated Use SQLite-backed session APIs. Scheduled for removal after 2026-10-12. */
+/** @deprecated 请改用基于 SQLite 的 session API。计划于 2026-10-12 之后移除。 */
 export let loadSessionStore: LibraryExports["loadSessionStore"];
 export let monitorWebChannel: LibraryExports["monitorWebChannel"];
 export let normalizeE164: LibraryExports["normalizeE164"];
@@ -78,7 +78,7 @@ export let resolveSessionKey: LibraryExports["resolveSessionKey"];
 export let resolveStorePath: LibraryExports["resolveStorePath"];
 export let runCommandWithTimeout: LibraryExports["runCommandWithTimeout"];
 export let runExec: LibraryExports["runExec"];
-/** @deprecated Use SQLite-backed session APIs. Scheduled for removal after 2026-10-12. */
+/** @deprecated 请改用基于 SQLite 的 session API。计划于 2026-10-12 之后移除。 */
 export let saveSessionStore: LibraryExports["saveSessionStore"];
 export let waitForever: LibraryExports["waitForever"];
 
@@ -87,7 +87,7 @@ async function loadLegacyCliDeps(): Promise<LegacyCliDeps> {
   return { runCli };
 }
 
-// Legacy executable bridge, also exported for callers that retain their own process lifecycle.
+// 旧版可执行入口桥接,同时导出给自行管理进程生命周期的调用方。
 export async function runLegacyCliEntry(
   argv: string[] = process.argv,
   deps?: LegacyCliDeps,
@@ -135,8 +135,8 @@ if (!isMain) {
 if (isMain && !handledRootVersion) {
   const { defaultRuntime, restoreRuntimeTerminalState } = await import("./runtime.js");
 
-  // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
-  // These log the error and exit gracefully instead of crashing without trace.
+  // 全局错误处理器,防止未处理的 rejection/异常导致静默崩溃。
+  // 它们会记录错误并优雅退出,而不是无痕迹地崩溃。
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
@@ -171,7 +171,7 @@ if (isMain && !handledRootVersion) {
     run: () =>
       withCliProcessScope(() =>
         runLegacyCliEntry(process.argv, undefined, {
-          // Finalizers and process-exit hooks can still emit diagnostics after runCli settles.
+          // runCli 结束后,终结器和进程退出钩子仍可能输出诊断信息。
           retainConsoleRoutingUntilProcessExit: true,
         }),
       ),

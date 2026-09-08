@@ -1,6 +1,6 @@
-// Minimal @openclaw/ai consumer: one isolated runtime, built-in providers,
-// one streamed completion. Uses only the public package surface — no OpenClaw
-// application code. See README.md for build prerequisites and run commands.
+// 最小的 @openclaw/ai 使用示例:单个隔离运行时、内置 provider、
+// 一次流式补全。只使用公开包接口——不依赖 OpenClaw 应用内部代码。
+// 构建前置条件和运行命令见 README.md。
 import { createLlmRuntime } from "@openclaw/ai";
 import { registerBuiltInApiProviders } from "@openclaw/ai/providers";
 
@@ -29,7 +29,7 @@ const MODELS = {
     contextWindow: 1_050_000,
     maxTokens: 128_000,
   },
-  // Local Ollama server; no API key required.
+  // 本地 Ollama 服务;无需 API key。
   ollama: {
     id: process.env.OLLAMA_MODEL || "llama3.2:latest",
     name: "Ollama",
@@ -63,7 +63,7 @@ registerBuiltInApiProviders(runtime.registry);
 const stream = runtime.streamSimple(
   model,
   { messages: [{ role: "user", content: prompt, timestamp: Date.now() }] },
-  // Ollama ignores credentials but the OpenAI-compatible transport requires one.
+  // Ollama 会忽略凭据,但 OpenAI 兼容传输层要求必须提供一个。
   provider === "ollama" ? { apiKey: "ollama" } : undefined,
 );
 

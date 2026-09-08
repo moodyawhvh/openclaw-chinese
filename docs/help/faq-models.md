@@ -1,164 +1,111 @@
+> 🌐 本文档由 [openclaw/openclaw](https://github.com/openclaw/openclaw) 翻译,英文原版见原项目。
+
 ---
-summary: "FAQ: model defaults, selection, aliases, switching, failover, and auth profiles"
+summary: "FAQ:模型默认值、选择、别名、切换、故障转移与 auth profiles"
 read_when:
-  - Choosing or switching models, configuring aliases
-  - Debugging model failover / "All models failed"
-  - Understanding auth profiles and how to manage them
-title: "FAQ: models and auth"
-sidebarTitle: "Models FAQ"
+  - 选择或切换模型、配置别名
+  - 调试模型故障转移 / "All models failed"
+  - 了解 auth profiles 及其管理方式
+title: "FAQ:模型与认证"
+sidebarTitle: "模型 FAQ"
 ---
 
-Model- and auth-profile Q&A. For setup, sessions, gateway, channels, and
-troubleshooting, see the main [FAQ](/help/faq).
+本页是关于模型与 auth profile 的问答。安装配置、会话、Gateway、频道与故障排查相关内容,请参阅主 [FAQ](/help/faq)。
 
-## Models: defaults, selection, aliases, switching
+## 模型:默认值、选择、别名与切换
 
 <AccordionGroup>
-  <Accordion title='What is the "default model"?'>
-    Set with:
+  <Accordion title='什么是"默认模型"?'>
+    通过以下配置项设置:
 
     ```text
     agents.defaults.model.primary
     ```
 
-    Models are `provider/model` refs (example: `openai/gpt-5.5`,
-    `anthropic/claude-sonnet-4-6`). Always set `provider/model` explicitly. If
-    you omit the provider, OpenClaw tries an alias match first, then a unique
-    configured-provider match for that model id, then falls back to the
-    configured default provider (deprecated compatibility path). If that
-    provider no longer has the configured default model, OpenClaw falls back
-    to the first configured provider/model instead of a stale default.
+    模型是 `provider/model` 形式的引用(例如 `openai/gpt-5.5`、`anthropic/claude-sonnet-4-6`)。请始终显式写明 `provider/model`。如果省略 provider,OpenClaw 会先尝试别名匹配,再尝试为该模型 id 匹配唯一的已配置 provider,最后回退到配置的默认 provider(已弃用的兼容路径)。如果该 provider 已不再提供所配置的默认模型,OpenClaw 会回退到第一个已配置的 provider/model,而不是沿用过期的默认值。
 
   </Accordion>
 
-  <Accordion title="What model do you recommend?">
-    Use the strongest latest-generation model your provider stack offers,
-    especially for tool-enabled or untrusted-input agents — weaker or
-    over-quantized models are more vulnerable to prompt injection and unsafe
-    behavior (see [Security](/gateway/security)). Route cheaper models to
-    routine/low-stakes chat by agent role.
+  <Accordion title="推荐使用什么模型?">
+    使用你的 provider 体系所能提供的最新一代最强模型,尤其是对启用了工具或需要处理不可信输入的 agent——更弱或过度量化的模型更容易遭受 prompt injection 攻击并产生不安全行为(参见[安全](/gateway/security))。可以按 agent 角色把更便宜的模型路由到日常/低风险聊天。
 
-    Route models per agent and use sub-agents to parallelize long tasks (each
-    sub-agent consumes its own tokens). See [Models](/concepts/models),
-    [Sub-agents](/tools/subagents), [MiniMax](/providers/minimax), and
-    [Local models](/gateway/local-models).
+    按 agent 分别路由模型,并用子代理(sub-agent)并行处理长任务(每个子代理消耗各自的 token)。参见[模型](/concepts/models)、[子代理](/tools/subagents)、[MiniMax](/providers/minimax)和[本地模型](/gateway/local-models)。
 
   </Accordion>
 
-  <Accordion title="How do I switch models without wiping my config?">
-    Change only the model fields — avoid full config replaces.
+  <Accordion title="如何在不弄乱配置的情况下切换模型?">
+    只修改模型相关的字段——避免整份替换配置。
 
-    - `/model <model> -s` in chat (current session only)
-    - owner/admin `/model <model> -a` (current session and agent default)
-    - owner/admin `/model <model> -g` (current session and global default)
-    - `openclaw models set ...` (updates just model config)
-    - `openclaw configure --section model` (interactive)
-    - edit `agents.defaults.model` in `~/.openclaw/openclaw.json` directly
+    - 在聊天中发送 `/model <model> -s`(仅当前会话)
+    - owner/admin 发送 `/model <model> -a`(当前会话与该 agent 的默认值)
+    - owner/admin 发送 `/model <model> -g`(当前会话与全局默认值)
+    - `openclaw models set ...`(仅更新模型配置)
+    - `openclaw configure --section model`(交互式)
+    - 直接编辑 `~/.openclaw/openclaw.json` 中的 `agents.defaults.model`
 
-    Bare `/model <model>` changes only the current session, including for owners/admins,
-    unless you explicitly choose a broader [model selection scope](/gateway/config-agents/models#agentsdefaultsmodelselectionscope).
+    不带标志的 `/model <model>` 只更改当前会话,owner/admin 也不例外,除非你显式选择更大的[模型选择作用域](/gateway/config-agents/models#agentsdefaultsmodelselectionscope)。
 
-    For RPC edits, inspect with `config.schema.lookup` first (normalized
-    path, shallow schema docs, child summaries), then prefer `config.patch`
-    over `config.apply` with a partial object. If you did overwrite config,
-    restore from backup or run `openclaw doctor` to repair.
+    通过 RPC 修改配置时,先用 `config.schema.lookup` 查看(规范化路径、浅层 schema 文档、子节点摘要),然后优先使用 `config.patch` 传入部分对象,而不是 `config.apply`。如果你确实覆盖了配置,请从备份恢复,或运行 `openclaw doctor` 修复。
 
-    Docs: [Models](/concepts/models), [Configure](/cli/configure),
-    [Config](/cli/config), [Doctor](/gateway/doctor).
+    文档:[模型](/concepts/models)、[Configure](/cli/configure)、[Config](/cli/config)、[Doctor](/gateway/doctor)。
 
   </Accordion>
 
-  <Accordion title="Can I use self-hosted models (llama.cpp, vLLM, Ollama)?">
-    Yes — Ollama is the easiest path. Quick setup:
+  <Accordion title="可以使用自托管模型吗(llama.cpp、vLLM、Ollama)?">
+    可以——Ollama 是最简单的路径。快速设置:
 
-    1. Install Ollama from `https://ollama.com/download`
-    2. Pull a local model, e.g. `ollama pull gemma4`
-    3. For cloud models too, run `ollama signin`
-    4. Run `openclaw onboard`, choose `Ollama`, then `Local` or `Cloud + Local`
+    1. 从 `https://ollama.com/download` 安装 Ollama
+    2. 拉取一个本地模型,例如 `ollama pull gemma4`
+    3. 如果还要使用云端模型,执行 `ollama signin`
+    4. 运行 `openclaw onboard`,选择 `Ollama`,再选择 `Local` 或 `Cloud + Local`
 
-    `Cloud + Local` gives you cloud models plus your local Ollama models;
-    cloud models such as `kimi-k2.5:cloud` need no local pull. To switch
-    manually: `openclaw models list`, then `openclaw models set ollama/<model>`.
+    `Cloud + Local` 会在本地 Ollama 模型之外同时提供云端模型;`kimi-k2.5:cloud` 这类云端模型无需本地拉取。手动切换:先 `openclaw models list`,再 `openclaw models set ollama/<model>`。
 
-    Smaller/heavily quantized models are more vulnerable to prompt injection.
-    Use large models for any bot with tool access; if you use small models
-    anyway, enable sandboxing and strict tool allowlists.
+    更小/重度量化的模型更容易遭受 prompt injection 攻击。任何拥有工具访问权限的 bot 都应使用大模型;如果仍要使用小模型,请启用沙箱和严格的工具白名单。
 
-    Docs: [Ollama](/providers/ollama), [Local models](/gateway/local-models),
-    [Model providers](/concepts/model-providers), [Security](/gateway/security),
-    [Sandboxing](/gateway/sandboxing).
+    文档:[Ollama](/providers/ollama)、[本地模型](/gateway/local-models)、[模型 provider](/concepts/model-providers)、[安全](/gateway/security)、[沙箱](/gateway/sandboxing)。
 
   </Accordion>
 
-  <Accordion title="How do I switch models on the fly (without restarting)?">
-    Send `/model <name> -s` as a standalone message to switch only this session.
-    Without a scope flag, the optional [model selection scope](/gateway/config-agents/models#agentsdefaultsmodelselectionscope)
-    applies; leaving it unset keeps the change in the current session, including for owners/admins. See
-    [Slash commands](/tools/slash-commands) for the
-    full command list, including model browsing (`/model`, `/models`, `/model
-    list`), `/model default -s` to clear only a session model override, and
-    `/model status` for endpoint/API-mode detail.
+  <Accordion title="如何在线切换模型(无需重启)?">
+    单独发送一条 `/model <name> -s` 消息,即可只切换当前会话。未带作用域标志时,将应用可选的[模型选择作用域](/gateway/config-agents/models#agentsdefaultsmodelselectionscope);保持未设置则变更只作用于当前会话,owner/admin 也不例外。完整命令列表见 [Slash commands](/tools/slash-commands),包括模型浏览(`/model`、`/models`、`/model list`)、只清除会话级模型覆盖的 `/model default -s`,以及查看端点/API 模式详情的 `/model status`。
 
-    Force a specific auth profile per session with `@profile`:
+    使用 `@profile` 为会话强制指定某个 auth profile:
 
     ```text
     /model opus@anthropic:default -s
     /model opus@anthropic:work -s
     ```
 
-    A model selection without `@profile` preserves an existing compatible
-    profile pin. Choose another explicit `@profile` suffix to replace it. Use
-    `/model status` to inspect the active auth profile. `/model default` keeps
-    a compatible auth pin and clears one that does not match the configured
-    default provider.
+    不带 `@profile` 的模型选择会保留既有且兼容的 profile 固定;要替换它,请改用另一个显式的 `@profile` 后缀。可用 `/model status` 查看当前生效的 auth profile。`/model default` 会保留兼容的 auth 固定,并清除与所配置默认 provider 不匹配的那一个。
 
   </Accordion>
 
-  <Accordion title="If two providers expose the same model id, which one does /model use?">
-    `/model provider/model` selects that exact provider route. For example,
-    `qianfan/deepseek-v4-flash` and `deepseek/deepseek-v4-flash` are different
-    refs even though the model id matches — OpenClaw does not silently switch
-    providers on a bare id match.
+  <Accordion title="如果两个 provider 暴露相同的模型 id,/model 会用哪一个?">
+    `/model provider/model` 会选中那个确切的 provider 路由。例如 `qianfan/deepseek-v4-flash` 与 `deepseek/deepseek-v4-flash` 虽然模型 id 相同,却是两个不同的引用——OpenClaw 不会仅凭裸 id 匹配就静默切换 provider。
 
-    A user-selected `/model` ref is strict for fallback: if that
-    provider/model becomes unavailable, the reply fails visibly instead of
-    falling back to `agents.defaults.model.fallbacks`. Configured fallback
-    chains still apply to configured defaults, cron job primaries, and
-    auto-selected fallback state. When a non-session-override run is allowed
-    to use fallback, OpenClaw tries the requested provider/model first, then
-    configured fallbacks, then the configured primary — so duplicate bare
-    model ids never jump straight back to the default provider.
+    用户通过 `/model` 选定的引用在故障转移上是严格的:如果该 provider/model 变得不可用,回复会显式失败,而不会回退到 `agents.defaults.model.fallbacks`。已配置的 fallback 链仍适用于配置的默认值、cron 任务主模型和自动选择的 fallback 状态。当非会话覆盖的运行允许使用 fallback 时,OpenClaw 会先尝试所请求的 provider/model,再尝试已配置的 fallback,最后才是配置的主模型——因此重复的裸模型 id 绝不会直接跳回默认 provider。
 
-    See [Models](/concepts/models) and [Model failover](/concepts/model-failover).
+    参见[模型](/concepts/models)与[模型故障转移](/concepts/model-failover)。
 
   </Accordion>
 
-  <Accordion title="Can I use GPT 5.5 for daily tasks and Codex 5.5 for coding?">
-    Yes — model choice and runtime choice are separate:
+  <Accordion title="可以日常任务用 GPT 5.5、编码用 Codex 5.5 吗?">
+    可以——模型选择与运行时选择是相互独立的:
 
-    - **Native Codex coding agent:** set `agents.defaults.model.primary` to
-      `openai/gpt-5.5`. Sign in with `openclaw models auth login --provider
-      openai` for ChatGPT/Codex subscription auth.
-    - **Direct OpenAI API tasks outside the agent loop:** configure
-      `OPENAI_API_KEY` for images, embeddings, speech, realtime, and other
-      non-agent OpenAI API surfaces.
-    - **OpenAI agent API-key auth:** `/model openai/gpt-5.5` with an ordered
-      `openai` API-key profile.
-    - **Sub-agents:** route coding tasks to a Codex-focused agent with its
-      own `openai/gpt-5.5` model.
+    - **原生 Codex 编码 agent:** 把 `agents.defaults.model.primary` 设为 `openai/gpt-5.5`,并用 `openclaw models auth login --provider openai` 登录,以使用 ChatGPT/Codex 订阅认证。
+    - **agent 循环之外的直接 OpenAI API 任务:** 为图像、embedding、语音、realtime 及其他非 agent 的 OpenAI API 能力配置 `OPENAI_API_KEY`。
+    - **OpenAI agent 的 API key 认证:** 使用已排序的 `openai` API key profile 执行 `/model openai/gpt-5.5`。
+    - **子代理:** 将编码任务路由给一个专注 Codex、且拥有自己 `openai/gpt-5.5` 模型的 agent。
 
-    See [Models](/concepts/models) and [Slash commands](/tools/slash-commands).
+    参见[模型](/concepts/models)与 [Slash commands](/tools/slash-commands)。
 
   </Accordion>
 
-  <Accordion title="How do I configure fast mode for GPT 5.5?">
-    - **Per session:** send `/fast on` while using `openai/gpt-5.5`.
-    - **Per model default:** set
-      `agents.defaults.models["openai/gpt-5.5"].params.fastMode` to `true`.
-    - **Automatic cutoff:** `/fast auto` or `params.fastMode: "auto"` runs new
-      model calls fast until the cutoff, then runs later retry, fallback,
-      tool-result, or continuation calls without fast mode. Cutoff defaults to
-      60 seconds; override with `params.fastAutoOnSeconds` on the model.
+  <Accordion title="如何为 GPT 5.5 配置 fast mode?">
+    - **按会话:** 在使用 `openai/gpt-5.5` 时发送 `/fast on`。
+    - **按模型默认值:** 将 `agents.defaults.models["openai/gpt-5.5"].params.fastMode` 设为 `true`。
+    - **自动截止:** `/fast auto` 或 `params.fastMode: "auto"` 会让新的模型调用以 fast 模式运行,直到截止时间;其后的重试、fallback、工具结果或继续生成调用不再使用 fast 模式。截止时间默认 60 秒,可通过该模型上的 `params.fastAutoOnSeconds` 覆盖。
 
     ```json5
     {
@@ -177,50 +124,32 @@ troubleshooting, see the main [FAQ](/help/faq).
     }
     ```
 
-    Fast mode maps to `service_tier = "priority"` on native OpenAI Responses
-    requests; existing `service_tier` values are preserved and fast mode does
-    not rewrite `reasoning` or `text.verbosity`. Session `/fast` overrides beat
-    config defaults.
+    在原生 OpenAI Responses 请求上,fast mode 会映射为 `service_tier = "priority"`;已有的 `service_tier` 值会被保留,fast mode 也不会改写 `reasoning` 或 `text.verbosity`。会话级 `/fast` 覆盖优先于配置默认值。
 
-    See [Thinking and fast mode](/tools/thinking) and the Fast mode section
-    under Advanced configuration on the [OpenAI](/providers/openai) provider
-    page.
+    参见 [Thinking and fast mode](/tools/thinking),以及 [OpenAI](/providers/openai) provider 页面 Advanced configuration 下的 Fast mode 小节。
 
   </Accordion>
 
-  <Accordion title='Why do I see "Model ... is not allowed" and then no reply?'>
-    If `agents.defaults.modelPolicy.allow` is non-empty, it becomes the
-    **allowlist** for `/model`, session overrides, and `--model`. Picking a model outside that list returns
-    this instead of a normal reply:
+  <Accordion title='为什么看到 "Model ... is not allowed" 之后就没有回复?'>
+    如果 `agents.defaults.modelPolicy.allow` 非空,它就会成为 `/model`、会话覆盖和 `--model` 的**白名单**。选择列表之外的模型时,返回的将是下面这条信息,而不是正常回复:
 
     ```text
     Model override "provider/model" is not allowed by agents.defaults.modelPolicy.allow.
     ```
 
-    Fix: add the exact model or a provider wildcard such as `"provider/*"` to
-    the named `modelPolicy.allow` list, remove/empty that list, or pick a model
-    from `/model list`. If the command also
-    included `--runtime codex`, update the allowlist first, then retry the
-    same `/model provider/model --runtime codex` command.
+    修复方法:将确切的模型或 `"provider/*"` 这类 provider 通配符加入前述 `modelPolicy.allow` 列表,移除/清空该列表,或从 `/model list` 中选择模型。如果命令还带有 `--runtime codex`,请先更新白名单,再重试同一条 `/model provider/model --runtime codex` 命令。
 
   </Accordion>
 
-  <Accordion title='Why do I see "Unknown model: minimax/MiniMax-M3"?'>
-    If you're on an older OpenClaw release, upgrade first (or run from source
-    `main`) and restart the gateway — `MiniMax-M3` may not be in your
-    installed release's catalog yet. Otherwise the MiniMax provider is not
-    configured (no provider entry or auth profile found), so the model can't
-    resolve. See the Troubleshooting section on the
-    [MiniMax](/providers/minimax) provider page for the full fix checklist,
-    provider/model id table, and config-block example.
+  <Accordion title='为什么看到 "Unknown model: minimax/MiniMax-M3"?'>
+    如果你用的是较旧的 OpenClaw 版本,请先升级(或从源码 `main` 运行)并重启 Gateway——你所安装版本的模型目录中可能还没有 `MiniMax-M3`。否则就是 MiniMax provider 尚未配置(找不到 provider 条目或 auth profile),导致模型无法解析。完整的修复清单、provider/model id 对照表和配置块示例,见 [MiniMax](/providers/minimax) provider 页面的 Troubleshooting 小节。
 
   </Accordion>
 
-  <Accordion title="Can I use MiniMax as my default and OpenAI for complex tasks?">
-    Yes. Use MiniMax as the default and switch models per session — fallbacks
-    are for errors, not "hard tasks", so use `/model` or a separate agent.
+  <Accordion title="可以把 MiniMax 设为默认、复杂任务用 OpenAI 吗?">
+    可以。把 MiniMax 设为默认并按会话切换模型——fallback 是为错误准备的,不是为"难题"准备的,所以请使用 `/model` 或单独的 agent。
 
-    **Option A: switch per session**
+    **方案 A:按会话切换**
 
     ```json5
     {
@@ -237,21 +166,18 @@ troubleshooting, see the main [FAQ](/help/faq).
     }
     ```
 
-    Then `/model gpt -s`.
+    然后执行 `/model gpt -s`。
 
-    **Option B: separate agents** — Agent A defaults to MiniMax, Agent B
-    defaults to OpenAI; route by agent or use `/agent` to switch.
+    **方案 B:独立 agent**——Agent A 默认用 MiniMax,Agent B 默认用 OpenAI;按 agent 路由任务,或使用 `/agent` 切换。
 
-    Docs: [Models](/concepts/models), [Multi-Agent Routing](/concepts/multi-agent),
-    [MiniMax](/providers/minimax), [OpenAI](/providers/openai).
+    文档:[模型](/concepts/models)、[Multi-Agent Routing](/concepts/multi-agent)、[MiniMax](/providers/minimax)、[OpenAI](/providers/openai)。
 
   </Accordion>
 
-  <Accordion title="Are opus / sonnet / gpt built-in shortcuts?">
-    Yes — built-in shorthands, applied only when the target model exists in
-    `agents.defaults.models`:
+  <Accordion title="opus / sonnet / gpt 是内置快捷方式吗?">
+    是的——它们是内置简写,仅当目标模型存在于 `agents.defaults.models` 中时才会生效:
 
-    | Alias | Resolves to |
+    | 别名 | 解析为 |
     | --- | --- |
     | `opus` | `anthropic/claude-opus-5` |
     | `sonnet` | `anthropic/claude-sonnet-5` |
@@ -262,12 +188,12 @@ troubleshooting, see the main [FAQ](/help/faq).
     | `gemini-flash` | `google/gemini-3-flash-preview` |
     | `gemini-flash-lite` | `google/gemini-3.1-flash-lite` |
 
-    Your own alias with the same name overrides the built-in one.
+    同名的自定义别名会覆盖内置别名。
 
   </Accordion>
 
-  <Accordion title="How do I define/override model shortcuts (aliases)?">
-    Aliases live at `agents.defaults.models.<modelId>.alias`:
+  <Accordion title="如何定义/覆盖模型快捷方式(别名)?">
+    别名位于 `agents.defaults.models.<modelId>.alias`:
 
     ```json5
     {
@@ -283,245 +209,10 @@ troubleshooting, see the main [FAQ](/help/faq).
     }
     ```
 
-    Then `/model sonnet -s` selects that model ID for the current session only.
-    Owners/admins can use `-a` to also update the agent default or `-g` for the
-    shared global default. Bare selections follow the [model selection scope](/gateway/config-agents/models#agentsdefaultsmodelselectionscope).
+    然后执行 `/model sonnet -s`,即可仅为当前会话选中该模型 ID。owner/admin 可以用 `-a` 同时更新 agent 默认值,或用 `-g` 更新共享的全局默认值。不带标志的选择遵循[模型选择作用域](/gateway/config-agents/models#agentsdefaultsmodelselectionscope)。
 
   </Accordion>
 
-  <Accordion title="How do I add models from other providers like OpenRouter or Z.AI?">
-    OpenRouter (pay-per-token; many models):
-
-    ```json5
-    {
-      agents: {
-        defaults: {
-          model: { primary: "openrouter/anthropic/claude-sonnet-4-6" },
-          models: { "openrouter/anthropic/claude-sonnet-4-6": {} },
-        },
-      },
-      env: { vars: { OPENROUTER_API_KEY: "sk-or-..." } },
-    }
-    ```
-
-    Z.AI (GLM models):
-
-    ```json5
-    {
-      agents: {
-        defaults: {
-          model: { primary: "zai/glm-5.1" },
-          models: { "zai/glm-5.1": {} },
-        },
-      },
-      env: { vars: { ZAI_API_KEY: "..." } },
-    }
-    ```
-
-    Missing provider key for a referenced provider/model raises a runtime
-    auth error (e.g. `No API key found for provider "zai"`).
-
-    **No API key found for provider after adding a new agent**
-
-    A new agent can read shared auth profiles without copying them. Its
-    own profiles live in `~/.openclaw/agents/<agentId>/agent/openclaw-agent.sqlite`
-    and override the shared read-through base. See
-    [Auth credential semantics](/auth-credential-semantics#agent-copy-portability).
-
-    Fix: run `openclaw models auth login --provider <providerId> --agent <agentId>`
-    on the Gateway host when the agent needs its own credentials. You can also
-    configure auth when creating an agent with `openclaw agents add <id>`.
-    For OAuth, sign in separately when the agent needs its own account.
-    See [Multi-Agent Routing](/concepts/multi-agent) for the
-    full `agentDir` reuse and credential-sharing rules — never reuse
-    `agentDir` across agents.
-
-  </Accordion>
 </AccordionGroup>
 
-## Model failover and "All models failed"
-
-<AccordionGroup>
-  <Accordion title="How does failover work?">
-    Two stages:
-
-    1. **Auth profile rotation** within the same provider.
-    2. **Model fallback** to the next model in `agents.defaults.model.fallbacks`.
-
-    Cooldowns apply to failing profiles (exponential backoff), so OpenClaw
-    keeps responding when a provider is rate-limited or temporarily failing.
-
-    The rate-limit bucket covers more than plain `429`: `Too many concurrent
-    requests`, `ThrottlingException`, `concurrency limit reached`, `workers_ai
-    ... quota limit exceeded`, `resource exhausted`, and periodic
-    usage-window limits (`weekly/monthly limit reached`) all count as
-    failover-worthy rate limits.
-
-    Billing responses aren't always `402`, and some `402`s stay in the
-    transient/rate-limit bucket rather than the billing lane. Explicit
-    billing text on `401`/`403` can still route to billing; provider-specific
-    text matchers (e.g. OpenRouter `Key limit exceeded`) stay scoped to their
-    own provider. A `402` that reads like a retryable usage-window or
-    org/workspace spend limit (`daily limit reached, resets tomorrow`,
-    `organization spending limit exceeded`) is treated as `rate_limit`, not a
-    long billing disable.
-
-    Context-overflow errors stay off the fallback path entirely — signatures
-    like `request_too_large`, `input exceeds the maximum number of tokens`,
-    `input token count exceeds the maximum number of input tokens`, `input is
-    too long for the model`, or `ollama error: context length exceeded` go to
-    compaction/retry instead of advancing model fallback.
-
-    Generic server-error text is narrower than "anything with unknown/error
-    in it". Provider-scoped transient shapes that do count as failover
-    signals: Anthropic bare `An unknown error occurred`, OpenRouter bare
-    `Provider returned error`, stop-reason errors like `Unhandled stop reason:
-    error`, JSON `api_error` payloads with transient server text (`internal
-    server error`, `unknown error, 520`, `upstream error`, `backend error`),
-    and provider-busy errors like `ModelNotReadyException` when the provider
-    context matches. Generic internal fallback text like `LLM request failed
-    with an unknown error.` stays conservative and does not trigger fallback
-    by itself.
-
-  </Accordion>
-
-  <Accordion title='What does "No credentials found for profile anthropic:default" mean?'>
-    The auth profile id `anthropic:default` has no credentials in the
-    expected auth store.
-
-    **Fix checklist:**
-
-    - Confirm where profiles live: shared and agent-local SQLite auth stores.
-      Run `openclaw doctor --fix` if an older install still has
-      `auth-profiles.json`; it is a migration source, not the runtime store.
-    - Confirm the Gateway loads your env var. `ANTHROPIC_API_KEY` set only in
-      your shell won't reach a Gateway run via systemd/launchd — put it in
-      `~/.openclaw/.env` or enable `env.shellEnv`.
-    - Confirm you're configuring the right agent — use `--agent <agentId>`
-      with `openclaw models auth login` to select its local store.
-    - Run `openclaw models status --agent <agentId>` for that agent's model
-      routes and auth state. A stored profile alone does not prove readiness;
-      see [Read status correctly](/cli/models#read-status-correctly).
-
-    **For "No credentials found for profile anthropic" (no email suffix):**
-
-    The run is pinned to an Anthropic profile the Gateway can't find.
-
-    - Use Claude CLI: run `openclaw models auth login --provider anthropic
-      --method cli --set-default` on the gateway host.
-    - Prefer an API key instead: put `ANTHROPIC_API_KEY` in
-      `~/.openclaw/.env` on the gateway host, then clear any pinned order
-      that forces the missing profile:
-
-      ```bash
-      openclaw models auth order clear --provider anthropic
-      ```
-
-    - Remote mode: auth profiles live on the gateway machine, not your
-      laptop — confirm you're running commands there.
-
-  </Accordion>
-
-  <Accordion title="Why did it also try Google Gemini and fail?">
-    If your model config includes Google Gemini as a fallback (or you
-    switched to a Gemini shorthand), OpenClaw tries it during fallback. No
-    Google credentials configured gives `No API key found for provider
-    "google"`. Fix: add Google auth, or remove Google models from
-    `agents.defaults.model.fallbacks`/aliases.
-
-    **LLM request rejected: thinking signature required (Google Antigravity)**
-
-    Cause: session history has thinking blocks without signatures (often
-    from an aborted/partial stream); Google Antigravity requires signatures
-    on thinking blocks. OpenClaw strips unsigned thinking blocks for Google
-    Antigravity Claude; if it still appears, start a new session or set
-    `/thinking off` for that agent.
-
-  </Accordion>
-</AccordionGroup>
-
-## Auth profiles: what they are and how to manage them
-
-Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-account patterns)
-
-<AccordionGroup>
-  <Accordion title="What is an auth profile?">
-    A named credential record (API key, token, or OAuth) tied to a provider,
-    stored in SQLite. Agent-local profiles in
-    `~/.openclaw/agents/<agentId>/agent/openclaw-agent.sqlite` override the
-    shared read-through base in `~/.openclaw/state/openclaw.sqlite`.
-    Older installs keep the shared store in the main agent's database until
-    `openclaw doctor --fix` relocates it.
-
-    Inspect saved profiles without dumping secrets: `openclaw models auth
-    list` (optionally `--provider <id>` or `--json`). See
-    [Models CLI](/cli/models#auth-profiles).
-
-  </Accordion>
-
-  <Accordion title="What are typical profile IDs?">
-    Provider-prefixed: `anthropic:default` (common when no email identity
-    exists), `anthropic:<email>` for OAuth identities, or a custom id you
-    choose (e.g. `anthropic:work`).
-
-  </Accordion>
-
-  <Accordion title="Can I control which auth profile is tried first?">
-    Yes. `auth.order.<provider>` config sets rotation order per provider
-    (metadata only — no secrets stored).
-
-    OpenClaw may skip a profile in a short **cooldown** (rate limits,
-    timeouts, auth failures) or a longer **disabled** state
-    (billing/insufficient credits). Inspect with `openclaw models status
-    --json` and check `auth.unusableProfiles`. Rate-limit cooldowns can be
-    model-scoped — a profile cooling down for one model can still serve a
-    sibling model on the same provider; billing/disabled windows block the
-    whole profile.
-
-    Set a per-agent order override (stored in that agent's
-    `openclaw-agent.sqlite` database):
-
-    ```bash
-    # Defaults to the configured default agent (omit --agent)
-    openclaw models auth order get --provider anthropic
-
-    # Lock rotation to a single profile
-    openclaw models auth order set --provider anthropic anthropic:default
-
-    # Or set an explicit order (fallback within provider)
-    openclaw models auth order set --provider anthropic anthropic:work anthropic:default
-
-    # Clear override (fall back to config auth.order / round-robin)
-    openclaw models auth order clear --provider anthropic
-
-    # Target a specific agent
-    openclaw models auth order set --provider anthropic --agent main anthropic:default
-    ```
-
-    Verify what will actually be tried: `openclaw models status --probe`. A
-    stored profile omitted from an explicit order reports
-    `excluded_by_auth_order` instead of being tried silently.
-
-  </Accordion>
-
-  <Accordion title="OAuth vs API key - what is the difference?">
-    - **OAuth / CLI login** often uses subscription access where the
-      provider supports it. For Anthropic, OpenClaw's Claude CLI backend
-      uses Claude Code `claude -p`, which Anthropic currently treats as
-      Agent SDK/programmatic usage drawing from subscription usage limits —
-      see [Anthropic](/providers/anthropic) for the current billing-pause
-      status and source links.
-    - **API keys** use pay-per-token billing.
-
-    The wizard supports Anthropic Claude CLI, OpenAI Codex OAuth, and API
-    keys.
-
-  </Accordion>
-</AccordionGroup>
-
-## Related
-
-- [FAQ](/help/faq) — the main FAQ
-- [FAQ — quick start and first-run setup](/help/faq-first-run)
-- [Model selection](/concepts/model-providers)
-- [Model failover](/concepts/model-failover)
+> 注:篇幅所限仅译核心章节,完整内容见原项目。
